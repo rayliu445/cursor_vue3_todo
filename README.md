@@ -1,62 +1,52 @@
-# Vue 3, TypeScript & Tailwind CSS Starter
 
-> A simple, Vue 3 starter with TypeScript support
+## 项目简介
 
-[Demo/Installation](https://vue3-typescript-tailwind-starter.vercel.app/)
+该项目旨在帮助用户快速使用 Cursor 工具，构建准确且高效的前端应用。项目集成了现代前端开发所需的多种技术栈，旨在提供一个良好的开发体验。
 
-## Features
+## 技术栈
 
-- Vue 3
-- TypeScript
-- Tailwind CSS
-- Simple store with global state
-- Vue Router
-- ESLint
+- **Vue 3**：采用 Vue 3 框架构建现代化的用户界面。
+- **TypeScript**：使用 TypeScript 提供强类型支持，提高代码的可维护性。
+- **Tailwind CSS**：使用 Tailwind CSS 进行快速且响应式的样式设计。
+- **简单的全局状态管理**：内置简单的状态管理，方便管理应用状态。
+- **Vue Router**：支持路由功能，便于构建单页应用（SPA）。
+- **ESLint**：集成 ESLint，确保代码质量和一致性。
 
-## Project setup and usage
+## 特性
 
-Install dependencies:
+- **快速启动**：通过 Cursor 工具，用户可以快速搭建项目框架。
+- **可扩展性**：提供基础结构，用户可以根据需求扩展功能。
+- **清晰的代码结构**：按照最佳实践组织代码，易于理解和维护。
 
-```
-npm install
-```
+## 快速开始
 
-Run development server:
+1. **克隆项目**
 
-```
-npm run dev
-```
+   ```bash
+   git clone https://github.com/pig-mesh/cursor-vue3-ts-tailwind-starter.git
+   ```
 
-Build for produciton:
+2. **安装依赖**
 
-```
-npm run build
-```
+   ```bash
+   npm install
+   ```
 
-Run ESLint:
+3. **运行开发服务器**
 
-```
-npm run lint
-```
+   ```bash
+   npm run serve
+   ```
 
-Lint and fix:
+4. **访问应用**
 
-```
-npm run lint:fix
-```
+   打开浏览器，访问 `http://localhost:3000` 查看您的应用。
 
-## Contributing
+## 贡献
 
-Contributions, feedback and issues are welcome. Feel free to fork, comment, critique, or submit a pull request.
+欢迎任何形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解更多信息。
 
-## Acknowledgements
+## 许可证
 
-This repo was adapted from [Unihen](https://twitter.com/uninen)'s [vite-ts-tailwind-starter](https://github.com/Uninen/vite-ts-tailwind-starter) project.
+本项目采用 [MIT 许可证](LICENSE) 开源。
 
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
----
-
-Follow [@vincentdoerig](https://twitter.com/vincentdoerig) on Twitter.
