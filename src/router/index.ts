@@ -7,15 +7,15 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: Home
+      component: Home,
     },
     {
       path: '/completed',
       name: 'completed',
       // 路由懒加载示例
-      component: () => import('@/views/CompletedTodos.vue')
-    }
-  ]
+      component: () => import('@/views/CompletedTodos.vue'),
+    },
+  ],
 })
 
 export default router

@@ -1,15 +1,24 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <h1 class="mb-6 text-3xl font-bold text-center">已完成的任务</h1>
+    <h1 class="mb-6 text-3xl font-bold text-center">
+      已完成的任务
+    </h1>
 
     <!-- 返回首页链接 -->
-    <router-link to="/" class="btn btn-link mb-4">
+    <router-link
+      to="/"
+      class="btn btn-link mb-4"
+    >
       返回首页
     </router-link>
 
     <!-- 已完成任务列表 -->
     <div class="flex flex-col gap-4">
-      <div v-for="todo in completedTodos" :key="todo.id" class="flex items-center gap-4 p-4 bg-base-200 rounded-lg">
+      <div
+        v-for="todo in completedTodos"
+        :key="todo.id"
+        class="flex items-center gap-4 p-4 bg-base-200 rounded-lg"
+      >
         <span class="line-through">{{ todo.title }}</span>
         <button
           class="btn btn-error btn-sm ml-auto"
