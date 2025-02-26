@@ -3,5 +3,14 @@ import About from './views/About.vue'
 import NotFound from './views/NotFound.vue'
 
 export const routes = [
-  { path: '/', component: Home, meta: { title: 'Home' }}
+  {
+    path: '/',
+    name: 'home',
+    component: Home
+  },
+  {
+    path: '/completed',
+    name: 'completed',
+    component: () => import('./views/CompletedTodos.vue')
+  }
 ]
