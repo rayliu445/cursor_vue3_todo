@@ -1,7 +1,9 @@
 <template>
   <div class="py-8">
     <!-- 标题区域 -->
-    <h1 class="mb-6 text-3xl font-bold text-center">待办事项</h1>
+    <h1 class="mb-6 text-3xl font-bold text-center">
+      待办事项
+    </h1>
 
     <!-- Todo添加表单 -->
     <div class="flex gap-2 mb-6">
@@ -11,7 +13,7 @@
         placeholder="添加新任务..."
         class="input input-bordered w-full"
         @keyup.enter="handleAddTodo"
-      />
+      >
       <button
         class="btn btn-primary"
         @click="handleAddTodo"
@@ -22,14 +24,17 @@
 
     <!-- Todo列表 -->
     <ul class="flex flex-col gap-4">
-      <li v-for="todo in todos" :key="todo.id"
-          class="flex items-center gap-4 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+      <li
+        v-for="todo in todos"
+        :key="todo.id"
+        class="flex items-center gap-4 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
+      >
         <input
           type="checkbox"
           :checked="todo.completed"
-          @change="toggleTodo(todo.id)"
           class="checkbox"
-        />
+          @change="toggleTodo(todo.id)"
+        >
         <span :class="{ 'line-through text-base-content/70': todo.completed }">
           {{ todo.title }}
         </span>
@@ -51,7 +56,10 @@
     </ul>
 
     <!-- 空状态 -->
-    <div v-if="todos.length === 0" class="text-center text-base-content/70 py-8">
+    <div
+      v-if="todos.length === 0"
+      class="text-center text-base-content/70 py-8"
+    >
       暂无待办事项
     </div>
   </div>
