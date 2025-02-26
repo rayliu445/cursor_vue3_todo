@@ -48,3 +48,9 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 </script>
+
+<script lang="ts">
+export default {
+  name: 'MainLayout',
+}
+</script>

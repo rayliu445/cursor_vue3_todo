@@ -5,6 +5,16 @@
       待办事项
     </h1>
 
+    <!-- 搜索栏 -->
+    <div class="mb-6">
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="搜索任务..."
+        class="input input-bordered input-primary"
+      >
+    </div>
+
     <!-- Todo添加表单 -->
     <div class="flex gap-2 mb-6">
       <input
@@ -25,7 +35,7 @@
     <!-- Todo列表 -->
     <ul class="flex flex-col gap-4">
       <li
-        v-for="todo in todos"
+        v-for="todo in filteredTodos"
         :key="todo.id"
         class="flex items-center gap-4 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
       >
@@ -66,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useTodoStore } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 
@@ -78,6 +88,19 @@ const { fetchTodos, addTodo, removeTodo, toggleTodoStatus } = todoStore
 
 // 新任务输入
 const newTodo = ref('')
+
+// 搜索查询
+const searchQuery = ref('')
+
+// 过滤后的任务列表
+const filteredTodos = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) return todos.value
+
+  return todos.value.filter(todo =>
+    todo.title.toLowerCase().includes(query),
+  )
+})
 
 // 添加任务
 async function handleAddTodo() {
