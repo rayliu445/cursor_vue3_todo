@@ -41,15 +41,6 @@ if [ -n "$JS_FILE" ] && [ -n "$CSS_FILE" ]; then
     rm -f "$INDEX_FILE.bak"
 fi
 
-# 复制必要的 Electron 文件到根目录
-echo "复制 Electron 主进程和预加载脚本..."
-cp electron/main.js main.js
-cp electron/preload.js preload.js
-
-# 复制配置文件
-echo "复制配置文件..."
-cp config.json .
-
 # 构建 DMG
 echo "正在构建 DMG 文件..."
 npx electron-builder --mac dmg
@@ -75,9 +66,6 @@ NEW_DMG_NAME="Cursor-Vue3-Todo-$(git describe --tags --abbrev=0 2>/dev/null || e
 cp "$DMG_PATH" "release/$NEW_DMG_NAME"
 
 echo "DMG 文件已复制到: release/$NEW_DMG_NAME"
-
-# 清理临时文件
-rm -f main.js preload.js config.json
 
 echo "重新构建流程完成！"
 echo ""

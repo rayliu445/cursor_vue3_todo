@@ -14,7 +14,7 @@
     "electron:build": "npm run build && electron-builder --dir",
     "dist": "electron-builder"
   },
-  "main": "main.js",
+  "main": "electron/main.js",
   "dependencies": {
     "@tailwindcss/forms": "^0.5.3",
     "@tailwindcss/typography": "^0.5.9",
@@ -70,8 +70,11 @@
     },
     "files": [
       "dist/**/*",
-      "main.js",
-      "preload.js"
+      "electron/main.js",
+      "electron/preload.js",
+      "server/**/*",
+      "config.json",
+      "db.json"
     ],
     "dmg": {
       "window": {

@@ -6,4 +6,3 @@ dist
 .eslintcache
 db.json
 dist-electron
-electron

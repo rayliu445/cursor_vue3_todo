@@ -8,7 +8,7 @@
 
 ## 应用简介
 
-Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、TypeScript 和 Electron 构建。该应用提供了一个美观且功能完善的界面，帮助用户管理日常任务。
+Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、TypeScript 和 Electron 构建，包含完整的前后端架构。该应用提供了一个美观且功能完善的界面，帮助用户管理日常任务。
 
 ## 功能特点
 
@@ -21,7 +21,7 @@ Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、
 
 ## 安装说明
 
-1. 双击 `Cursor-Vue3-Todo-debug-enabled.dmg` 文件以挂载安装镜像
+1. 双击 `Cursor-Vue3-Todo-Proper-Structure.dmg` 文件以挂载安装镜像
 2. 将 "Cursor Vue3 Todo" 图标拖拽至 "Applications" 文件夹
 3. 打开 "Applications" 文件夹，双击 "Cursor Vue3 Todo" 启动应用
 
@@ -30,13 +30,30 @@ Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、
 - macOS 10.12 或更高版本
 - 至少 2GB 可用存储空间
 
-## 修复说明
+## 项目结构
 
-- 修复了白屏问题，解决了应用启动时无法加载的问题
-- 修正了主进程文件路径，确保在打包后能正确加载页面
-- 移除了对远程 API 的依赖，在 Electron 环境中使用 IPC 接口进行数据操作
-- 添加了本地数据持久化功能，数据保存在用户目录中
-- 新增多级别日志功能，便于调试问题
+```
+project-root/
+├── electron/           # Electron 主进程和预加载脚本
+│   ├── main.js       # 主进程代码
+│   └── preload.js    # 预加载脚本
+├── server/             # 后端服务代码
+│   └── server.js     # JSON Server 后端服务
+├── src/                # 前端源代码
+│   ├── components/   # Vue 组件
+│   ├── views/        # 页面视图
+│   ├── stores/       # Pinia 状态管理
+│   └── router/       # Vue Router 路由
+├── dist/               # 构建后的前端资源
+└── db.json             # 本地数据文件
+```
+
+## 架构说明
+
+- 前端：使用 Vue 3 + TypeScript + Tailwind CSS + daisyUI
+- 后端：使用 json-server 提供 REST API 服务
+- 桌面应用：使用 Electron 将 Web 应用封装为桌面应用
+- 数据存储：本地 db.json 文件存储
 
 ## 日志配置
 
@@ -73,21 +90,22 @@ Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、
 ## 技术说明
 
 - 使用 Electron 构建，可在 macOS 上原生运行
+- 内置 json-server 后端服务，提供 REST API
 - 数据存储使用本地文件系统，无需网络连接
 - 前端使用 Vue 3 + TypeScript + Tailwind CSS + daisyUI
-- 采用 IPC 机制实现前后端通信
 - 内置多级别日志记录功能，便于调试问题
 
 ## 已知问题
 
-- 应用首次启动可能需要几秒钟的加载时间
+- 应用首次启动可能需要几秒钟的加载时间（等待后端服务器启动）
 - 在某些 macOS 版本上可能需要额外的安全许可
 
 ## 更新日志
 
-- v0.0.0 (2026-01-31): 修复版本
+- v0.0.0 (2026-01-31): 前后端完整版
+  - 保留前端后端完整架构
   - 修复白屏问题
-  - 修正应用加载路径
-  - 完善本地数据持久化
+  - 后端服务在打包后自动启动
   - 添加多级别日志功能，便于调试
   - 优化用户界面和交互体验
+  - 恢复正确的项目目录结构
