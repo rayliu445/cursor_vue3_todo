@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const { spawn } = require('child_process')
 
 // 读取外部配置文件
 const configPath = path.join(app.getAppPath(), 'config.json')
@@ -108,6 +109,7 @@ function writeDb(data) {
 }
 
 let mainWindow
+let serverProcess = null
 
 function createWindow() {
   info('Creating browser window')
@@ -131,19 +133,48 @@ function createWindow() {
 
   // 根据环境加载不同内容
   if (isProduction) {
-    const indexPath = path.join(__dirname, 'dist/index.html')
-    info('Loading packaged app from: ' + indexPath)
+    // 在生产环境中启动后端服务器
+    const serverPath = path.join(
+      process.resourcesPath,
+      'app',
+      'server',
+      'server.js',
+    )
 
-    if (!fs.existsSync(indexPath)) {
-      error('ERROR: Index file does not exist at path: ' + indexPath)
+    if (fs.existsSync(serverPath)) {
+      info('Starting backend server...')
+      serverProcess = spawn(process.execPath, [serverPath], {
+        detached: true,
+        stdio: 'ignore',
+      })
+
+      serverProcess.unref() // 让子进程独立运行
+
+      // 等待服务器启动
+      setTimeout(() => {
+        const indexPath = path.join(__dirname, 'dist/index.html')
+        info('Loading packaged app from: ' + indexPath)
+
+        if (!fs.existsSync(indexPath)) {
+          error('ERROR: Index file does not exist at path: ' + indexPath)
+        } else {
+          info('SUCCESS: Index file exists at path: ' + indexPath)
+        }
+
+        mainWindow.loadFile(indexPath)
+      }, 2000) // 等待2秒让服务器启动
     } else {
-      info('SUCCESS: Index file exists at path: ' + indexPath)
+      error('Server file not found at: ' + serverPath)
+      const indexPath = path.join(__dirname, 'dist/index.html')
+      mainWindow.loadFile(indexPath)
     }
-
-    mainWindow.loadFile(indexPath)
   } else {
     info('Loading from development server: http://localhost:3000')
     mainWindow.loadURL('http://localhost:3000')
+
+    // 开发环境下启动后端服务器
+    const { createServer } = require('./server/server')
+    createServer()
   }
 
   // 检查页面加载错误
@@ -269,6 +300,12 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', function () {
   info('All windows closed, quitting app')
+
+  // 关闭服务器进程
+  if (serverProcess) {
+    serverProcess.kill()
+  }
+
   if (process.platform !== 'darwin') app.quit()
 })
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-const { createServer } = require('./server')
+const server = require('./server/server')
 
-createServer()
+// 服务器已经自动启动，因为server.js中包含了监听逻辑
