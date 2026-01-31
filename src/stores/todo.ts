@@ -3,13 +3,11 @@ import { ref } from 'vue'
 
 // Todo类型定义
 interface Todo {
-  id: number
+  id: number | string
   title: string
   completed: boolean
+  createdAt?: string
 }
-
-// JSON Server的基础URL
-const API_BASE_URL = 'http://localhost:3001'
 
 export const useTodoStore = defineStore('todo', () => {
   // 状态
@@ -17,12 +15,22 @@ export const useTodoStore = defineStore('todo', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // 检查是否在Electron环境中
+  function isElectronEnvironment() {
+    return typeof window !== 'undefined' && (window as any).electronAPI
+  }
+
   // 获取所有任务
   async function fetchTodos() {
     isLoading.value = true
     try {
-      const response = await fetch(`${API_BASE_URL}/todos`)
-      todos.value = await response.json()
+      if (isElectronEnvironment()) {
+        // 在Electron环境中使用IPC
+        todos.value = await (window as any).electronAPI.getTodos()
+      } else {
+        // 在浏览器环境中，不执行HTTP请求，仅清空或保持现有数据
+        todos.value = []
+      }
     } catch (e) {
       error.value = '获取任务列表失败'
       console.error(e)
@@ -34,17 +42,20 @@ export const useTodoStore = defineStore('todo', () => {
   // 添加任务
   async function addTodo(title: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/todos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      if (isElectronEnvironment()) {
+        // 在Electron环境中使用IPC
+        const newTodo = await (window as any).electronAPI.addTodo({ title })
+        todos.value.push(newTodo)
+      } else {
+        // 在浏览器环境中，模拟添加（仅在内存中）
+        const newTodo: Todo = {
+          id: Date.now().toString(),
           title,
-        }),
-      })
-      const newTodo = await response.json()
-      todos.value.push(newTodo)
+          completed: false,
+          createdAt: new Date().toISOString(),
+        }
+        todos.value.push(newTodo)
+      }
     } catch (e) {
       error.value = '添加任务失败'
       console.error(e)
@@ -52,12 +63,16 @@ export const useTodoStore = defineStore('todo', () => {
   }
 
   // 删除任务
-  async function removeTodo(id: number) {
+  async function removeTodo(id: number | string) {
     try {
-      await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'DELETE',
-      })
-      todos.value = todos.value.filter(todo => todo.id !== id)
+      if (isElectronEnvironment()) {
+        // 在Electron环境中使用IPC
+        await (window as any).electronAPI.removeTodo(id)
+        todos.value = todos.value.filter(todo => todo.id !== id)
+      } else {
+        // 在浏览器环境中，模拟删除（仅在内存中）
+        todos.value = todos.value.filter(todo => todo.id !== id)
+      }
     } catch (e) {
       error.value = '删除任务失败'
       console.error(e)
@@ -65,23 +80,25 @@ export const useTodoStore = defineStore('todo', () => {
   }
 
   // 切换任务状态
-  async function toggleTodoStatus(id: number) {
+  async function toggleTodoStatus(id: number | string) {
     try {
-      const todo = todos.value.find(t => t.id === id)
-      if (!todo) return
-
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          completed: !todo.completed,
-        }),
-      })
-      const updatedTodo = await response.json()
-      const index = todos.value.findIndex(t => t.id === id)
-      todos.value[index] = updatedTodo
+      if (isElectronEnvironment()) {
+        // 在Electron环境中使用IPC
+        const updatedTodo = await (window as any).electronAPI.toggleTodo(id)
+        const index = todos.value.findIndex(t => t.id === id)
+        if (index !== -1) {
+          todos.value[index] = updatedTodo
+        }
+      } else {
+        // 在浏览器环境中，模拟切换状态（仅在内存中）
+        const index = todos.value.findIndex(t => t.id === id)
+        if (index !== -1) {
+          todos.value[index] = {
+            ...todos.value[index],
+            completed: !todos.value[index].completed,
+          }
+        }
+      }
     } catch (e) {
       error.value = '更新任务状态失败'
       console.error(e)
@@ -89,21 +106,24 @@ export const useTodoStore = defineStore('todo', () => {
   }
 
   // 更新任务
-  async function updateTodo(id: number, title: string) {
+  async function updateTodo(id: number | string, title: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-        }),
-      })
-      const updatedTodo = await response.json()
-      const index = todos.value.findIndex(t => t.id === id)
-      if (index !== -1) {
-        todos.value[index] = updatedTodo
+      if (isElectronEnvironment()) {
+        // 在Electron环境中使用IPC
+        const updatedTodo = await (window as any).electronAPI.updateTodo(id, { title })
+        const index = todos.value.findIndex(t => t.id === id)
+        if (index !== -1) {
+          todos.value[index] = updatedTodo
+        }
+      } else {
+        // 在浏览器环境中，模拟更新（仅在内存中）
+        const index = todos.value.findIndex(t => t.id === id)
+        if (index !== -1) {
+          todos.value[index] = {
+            ...todos.value[index],
+            title,
+          }
+        }
       }
     } catch (e) {
       error.value = '更新任务失败'

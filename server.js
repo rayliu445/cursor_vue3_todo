@@ -1,6 +1,8 @@
 const jsonServer = require('json-server')
+const path = require('path')
+
 const server = jsonServer.create()
-const router = jsonServer.router('db.json')
+const router = jsonServer.router(path.join(__dirname, 'db.json'))
 const middlewares = jsonServer.defaults()
 
 // 使用中间件
@@ -32,7 +34,13 @@ server.post('/api/todos', (req, res) => {
 // 使用路由
 server.use(router)
 
-// 启动服务器
-server.listen(3001, () => {
-  console.log('JSON Server is running on port 3001')
-})
+// 导出服务器实例以便在Electron中使用
+module.exports = {
+  createServer: () => {
+    server.listen(3001, () => {
+      console.log('JSON Server is running on port 3001')
+    })
+    return server
+  },
+  server,
+}

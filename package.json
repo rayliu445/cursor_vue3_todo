@@ -5,12 +5,16 @@
     "dev": "vite",
     "build": "vite build",
     "start": "npm run dev",
-    "server": "node server.js",
+    "server": "node server-app.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "lint": "eslint . --ext .js,.ts,.vue",
     "lint:fix": "eslint . --ext .js,.ts,.vue --fix",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "electron:serve": "electron .",
+    "electron:build": "npm run build && electron-builder --dir",
+    "dist": "electron-builder"
   },
+  "main": "main.js",
   "dependencies": {
     "@tailwindcss/forms": "^0.5.3",
     "@tailwindcss/typography": "^0.5.9",
@@ -30,6 +34,8 @@
     "autoprefixer": "^10.4.14",
     "babel-eslint": "^10.1.0",
     "concurrently": "^8.0.1",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
     "eslint": "^8.9.0",
     "eslint-plugin-vue": "^8.5.0",
     "husky": "^7.0.4",
@@ -43,5 +49,47 @@
   "lint-staged": {
     "*.{js,ts,vue}": "eslint --cache --fix",
     "*.{js,css,md}": "prettier --write"
+  },
+  "build": {
+    "appId": "com.example.cursor-vue3-todo",
+    "productName": "Cursor Vue3 Todo",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js"
+    ],
+    "dmg": {
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
   }
 }
