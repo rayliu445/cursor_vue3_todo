@@ -5,3 +5,5 @@ dist
 .vscode
 .eslintcache
 db.json
+dist-electron
+electron
