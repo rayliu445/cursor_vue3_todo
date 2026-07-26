@@ -52,13 +52,13 @@ jobs:
           fi
           echo "Found: $app_dir"
 
-          # 准备 DMG 内容（.app + 安装脚本）
+          # 准备 DMG 内容
           dmg_root="/tmp/dmg-content"
           rm -rf "$dmg_root"
           mkdir -p "$dmg_root"
           cp -R "$app_dir" "$dmg_root/"
-          cp scripts/install.command "$dmg_root/"
-          chmod +x "$dmg_root/install.command"
+          # 创建 /Applications 快捷方式（拖拽安装用）
+          ln -s /Applications "$dmg_root/Applications"
 
           # 创建 DMG
           DMG_NAME="Todo-App-mac-arm64.dmg"

@@ -28,16 +28,12 @@ Todo App 是一款对标滴答清单的个人任务管理工具，支持多平�
 
 由于本应用未使用 Apple Developer 账号签名，macOS Gatekeeper 会拦截首次启动。解决办法：
 
-**方案一：使用 DMG 内的安装脚本（推荐）**
-打开 DMG → 双击 `install.command` → 输入密码 → 自动完成安装和启动
-
-**方案二：手动安装**
 1. 打开 DMG，将 `Todo App.app` 拖入 `/Applications`
-2. 右键（或 Ctrl+单击）`/Applications/Todo App.app` → 选择**打开**
+2. **右键**（或 Ctrl+单击）`/Applications/Todo App.app` → 选择**打开**
 3. 在弹出的对话框中点击**打开**
 4. 以后正常双击即可使用
 
-> 常见问题：如果双击出现"已损坏"提示，**不要点"移到废纸篓"**，请使用上面的右键→打开方式。
+> ⚠️ 不要直接双击打开，否则 macOS 会误报"已损坏"。请始终使用右键→打开的方式首次启动。
 
 ## 技术栈
 
