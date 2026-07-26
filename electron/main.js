@@ -141,9 +141,17 @@ function createWindow() {
 
   // 根据环境加载不同内容
   if (app.isPackaged) {
-    const indexPath = path.join(__dirname, '../dist/index.html')
-    info('Loading packaged app from: ' + indexPath)
-    mainWindow.loadFile(indexPath)
+    // 调试：打印所有相关路径
+    info('app.getAppPath(): ' + app.getAppPath())
+    info('__dirname: ' + __dirname)
+    const indexPath1 = path.join(__dirname, '../dist/index.html')
+    const indexPath2 = path.join(app.getAppPath(), 'dist/index.html')
+    info('path 1 (__dirname + ../dist): ' + indexPath1)
+    info('path 2 (app.getAppPath + dist): ' + indexPath2)
+    info('file exists 1: ' + require('fs').existsSync(indexPath1))
+    info('file exists 2: ' + require('fs').existsSync(indexPath2))
+    // 先用 path 2 尝试
+    mainWindow.loadFile(indexPath2)
   } else {
     info('Loading from development server: http://localhost:3000')
     mainWindow.loadURL('http://localhost:3000')
@@ -172,15 +180,8 @@ function createWindow() {
   })
 
   // 打开开发者工具以便调试
-  setTimeout(() => {
-    if (
-      process.env.NODE_ENV === 'development' ||
-      logLevelNum >= LOG_LEVELS.DEBUG
-    ) {
-      mainWindow.webContents.openDevTools({ mode: 'detach' })
-      info('DevTools opened')
-    }
-  }, 1000)
+  mainWindow.webContents.openDevTools({ mode: 'detach' })
+  info('DevTools opened')
 
   mainWindow.on('closed', () => {
     info('Window closed')

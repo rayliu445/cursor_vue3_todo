@@ -10,30 +10,6 @@ const __dirname = path.dirname(__filename)
 export default defineConfig({
   plugins: [
     vue(),
-    // 自定义插件来修改生成的HTML
-    {
-      name: 'relative-html-path',
-      enforce: 'post',
-      generateBundle(options, bundle) {
-        for (const fileName in bundle) {
-          if (fileName.endsWith('.html')) {
-            const chunk = bundle[fileName]
-            if (chunk && chunk.type === 'asset' && chunk.fileName.endsWith('.html')) {
-              // 修改HTML内容中的绝对路径为相对路径
-              let htmlContent = chunk.source.toString()
-              
-              // 将绝对路径转换为相对路径
-              htmlContent = htmlContent.replace(/(href|src)="\/([^"]*)"/g, '$1="./$2"')
-              
-              // 特别处理 favicon 的路径
-              htmlContent = htmlContent.replace(/href="\.\/favicon\.ico"/g, 'href="./favicon.ico"')
-              
-              chunk.source = htmlContent
-            }
-          }
-        }
-      },
-    },
   ],
   resolve: {
     alias: {
