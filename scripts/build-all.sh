@@ -25,10 +25,20 @@ echo ""
 echo "[2/5] Checking macOS build..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
   npx electron-builder --mac --publish=never 2>&1 | tail -3
+  # Ad-hoc 签名修复 Gatekeeper "已损坏" 问题
+  APP_DIR=$(find "$BUILD_DIR" -name "*.app" -type d -maxdepth 2 | head -1)
+  if [ -n "$APP_DIR" ]; then
+    echo "  📦 Signing: $APP_DIR"
+    xattr -cr "$APP_DIR" 2>/dev/null || true
+    codesign --force --deep --sign - "$APP_DIR"
+    echo "  ✅ Ad-hoc signed"
+  fi
+  # 手动创建 DMG（electron-builder 的 hdiutil 在 arm64 上有兼容问题）
+  DMG_NAME="Todo-App-v$VERSION-mac-arm64.dmg"
+  hdiutil create -size 500m -fs APFS -volname "Todo App" -srcfolder "$APP_DIR" -format UDZO -ov "$BUILD_DIR/$DMG_NAME" 2>&1 | tail -1
   mkdir -p "$RELEASE_DIR"
-  cp "$BUILD_DIR"/*-mac.dmg "$RELEASE_DIR/" 2>/dev/null || true
-  cp "$BUILD_DIR"/*-mac.dmg.blockmap "$RELEASE_DIR/" 2>/dev/null || true
-  echo "  ✅ macOS .dmg built"
+  cp "$BUILD_DIR/$DMG_NAME" "$RELEASE_DIR/" 2>/dev/null || true
+  echo "  ✅ macOS .dmg built: $DMG_NAME"
 else
   echo "  ⏭️  Skipped (not macOS)"
 fi

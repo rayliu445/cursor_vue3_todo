@@ -41,23 +41,39 @@ jobs:
       - run: npm run build
       - name: Build macOS app bundle
         run: npx electron-builder --mac --publish=never
-      - name: Package app into zip
+      - name: Sign & package macOS app
         run: |
-          cd dist-electron
-          # electron-builder --mac dir outputs to mac-arm64/ directory
-          app_dir=$(ls -d mac-arm64 2>/dev/null || ls -d */ 2>/dev/null | head -1)
-          if [ -n "$app_dir" ]; then
-            echo "Packaging $app_dir"
-            zip -ry "Todo-App-mac.zip" "$app_dir"
-          else
-            echo "ERROR: No mac build output found"
-            ls -la
+          # Find the .app bundle
+          app_dir=$(find dist-electron -name "*.app" -type d -maxdepth 2 | head -1)
+          if [ -z "$app_dir" ]; then
+            echo "ERROR: No .app found"
+            find dist-electron -maxdepth 3 -type d
             exit 1
           fi
+          echo "Found: $app_dir"
+
+          # Ad-hoc sign (fixes "已损坏" Gatekeeper error)
+          xattr -cr "$app_dir" 2>/dev/null || true
+          codesign --force --deep --sign - "$app_dir"
+          echo "✅ Ad-hoc signed"
+
+          # Create DMG manually
+          DMG_NAME="Todo-App-mac-arm64.dmg"
+          hdiutil create -size 500m -fs APFS -volname "Todo App" \
+            -srcfolder "$app_dir" -format UDZO -ov "dist-electron/$DMG_NAME"
+          echo "✅ DMG created: $DMG_NAME"
+
+          # Also create zip as backup
+          cd dist-electron
+          app_basename=$(basename "$app_dir")
+          zip -ry "Todo-App-mac.zip" "$app_basename"
+          echo "✅ Zip created"
       - uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: dist-electron/Todo-App-mac.zip
+          path: |
+            dist-electron/Todo-App-mac.zip
+            dist-electron/Todo-App-mac-arm64.dmg
 
   build-win:
     name: Build Windows
