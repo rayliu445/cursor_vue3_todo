@@ -95,31 +95,20 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Install Android SDK
-        run: |
-          # Install minimal SDK (no full Android Studio needed)
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq android-sdk 2>/dev/null || true
-          # Fallback: use sdkmanager
-          which sdkmanager 2>/dev/null || echo "using cmdline-tools"
-          export ANDROID_HOME=$ANDROID_SDK_ROOT
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
       - run: npm ci
       - run: npm run build
       - name: Set up Android project
         run: |
-          export ANDROID_HOME="/usr/lib/android-sdk"
-          # Accept licenses
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-          # Add Android project if not exists
           if [ ! -d "android" ]; then
-            npx cap add android --skip-confirmation 2>&1 || npx cap add android
+            CI=true npx cap add android 2>&1 || npx cap add android
           fi
           npx cap sync android
         env:
           CI: true
       - name: Build APK
         run: |
-          export ANDROID_HOME="/usr/lib/android-sdk"
           cd android
           ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
