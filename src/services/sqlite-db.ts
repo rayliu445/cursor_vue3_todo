@@ -81,10 +81,17 @@ export class TodoDatabase {
   /** 初始化：加载 WASM + 创建 Schema */
   async initialize(existingData?: Uint8Array): Promise<void> {
     const SQL = await initSqlJs({
-      // sql.js 会自动从 node_modules 加载 wasm
+      // 动态定位 WASM 文件
+      // - 开发环境：从 node_modules 加载
+      // - 打包后：从 dist/assets/ 加载（与 JS 同目录）
       locateFile: (file: string) => {
-        // Vite 环境下从 node_modules 加载
-        return new URL(`../../node_modules/sql.js/dist/${file}`, import.meta.url).href
+        try {
+          // 优先从当前脚本同目录加载（打包后适用）
+          return new URL(`./${file}`, import.meta.url).href
+        } catch {
+          // 回退到 node_modules（开发环境适用）
+          return new URL(`../../node_modules/sql.js/dist/${file}`, import.meta.url).href
+        }
       },
     })
 
