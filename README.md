@@ -16,13 +16,28 @@ Todo App 是一款对标滴答清单的个人任务管理工具，支持多平�
 
 | 平台 | 安装包 | 技术 |
 |------|--------|------|
-| 🖥️ macOS | `.dmg` | Electron 30 |
-| 🖥️ Windows | `.exe` (NSIS) / `.exe` (Portable) | Electron 30 |
+| 🖥️ macOS | `.dmg` | Electron 30（未签名，首次安装见下方说明） |
+| 🖥️ Windows | `.exe` (Portable) | Electron 30 |
 | 📱 iOS | `.ipa` (AltStore 侧载) | Capacitor 8 |
 | 📱 Android | `.apk` | Capacitor 8 |
 | 🌐 Web | 浏览器直接访问 | Vite 2 |
 
 完整安装指南请查看 [docs/INSTALL.md](docs/INSTALL.md)。
+
+### macOS 首次安装说明
+
+由于本应用未使用 Apple Developer 账号签名，macOS Gatekeeper 会拦截首次启动。解决办法：
+
+**方案一：使用 DMG 内的安装脚本（推荐）**
+打开 DMG → 双击 `install.command` → 输入密码 → 自动完成安装和启动
+
+**方案二：手动安装**
+1. 打开 DMG，将 `Todo App.app` 拖入 `/Applications`
+2. 右键（或 Ctrl+单击）`/Applications/Todo App.app` → 选择**打开**
+3. 在弹出的对话框中点击**打开**
+4. 以后正常双击即可使用
+
+> 常见问题：如果双击出现"已损坏"提示，**不要点"移到废纸篓"**，请使用上面的右键→打开方式。
 
 ## 技术栈
 

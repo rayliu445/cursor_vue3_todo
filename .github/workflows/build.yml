@@ -41,9 +41,9 @@ jobs:
       - run: npm run build
       - name: Build macOS app bundle
         run: npx electron-builder --mac --publish=never
-      - name: Sign & package macOS app
+      - name: Package macOS DMG
         run: |
-          # Find the .app bundle
+          # 查找 .app 文件
           app_dir=$(find dist-electron -name "*.app" -type d -maxdepth 2 | head -1)
           if [ -z "$app_dir" ]; then
             echo "ERROR: No .app found"
@@ -52,26 +52,26 @@ jobs:
           fi
           echo "Found: $app_dir"
 
-          # Ad-hoc sign (fixes "已损坏" Gatekeeper error)
-          xattr -cr "$app_dir" 2>/dev/null || true
-          codesign --force --deep --sign - "$app_dir"
-          echo "✅ Ad-hoc signed"
+          # 准备 DMG 内容（.app + 安装脚本）
+          dmg_root="/tmp/dmg-content"
+          rm -rf "$dmg_root"
+          mkdir -p "$dmg_root"
+          cp -R "$app_dir" "$dmg_root/"
+          cp scripts/install.command "$dmg_root/"
+          chmod +x "$dmg_root/install.command"
 
-          # Create DMG manually
+          # 创建 DMG
           DMG_NAME="Todo-App-mac-arm64.dmg"
-          hdiutil create -size 500m -fs APFS -volname "Todo App" \
-            -srcfolder "$app_dir" -format UDZO -ov "dist-electron/$DMG_NAME"
+          hdiutil create -size 600m -fs APFS -volname "Todo App" \
+            -srcfolder "$dmg_root" -format UDZO -ov "dist-electron/$DMG_NAME"
           echo "✅ DMG created: $DMG_NAME"
 
-          # Also create zip as backup (zip failure is non-critical, DMG is the primary artifact)
-          # app_dir is relative: dist-electron/mac-arm64/Todo App.app
-          zip -ry "dist-electron/Todo-App-mac.zip" "$app_dir" || echo "⚠️ Zip skipped (non-critical)"
+          # 清理
+          rm -rf "$dmg_root"
       - uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: |
-            dist-electron/Todo-App-mac.zip
-            dist-electron/Todo-App-mac-arm64.dmg
+          path: dist-electron/Todo-App-mac-arm64.dmg
 
   build-win:
     name: Build Windows
