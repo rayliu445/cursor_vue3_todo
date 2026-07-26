@@ -52,13 +52,17 @@ jobs:
           fi
           echo "Found: $app_dir"
 
+          # 对 app 进行 ad-hoc 签名（使内部所有 frameworks 签名一致）
+          echo "Signing with ad-hoc..."
+          codesign --force --deep --sign - "$app_dir"
+
           # 准备 DMG 内容
           dmg_root="/tmp/dmg-content"
           rm -rf "$dmg_root"
           mkdir -p "$dmg_root"
           cp -R "$app_dir" "$dmg_root/"
-          # 创建 /Applications 快捷方式（拖拽安装用）
-          ln -s /Applications "$dmg_root/Applications"
+          cp scripts/fix-gatekeeper.command "$dmg_root/"
+          chmod +x "$dmg_root/fix-gatekeeper.command"
 
           # 创建 DMG
           DMG_NAME="Todo-App-mac-arm64.dmg"
