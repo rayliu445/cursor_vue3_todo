@@ -63,11 +63,9 @@ jobs:
             -srcfolder "$app_dir" -format UDZO -ov "dist-electron/$DMG_NAME"
           echo "✅ DMG created: $DMG_NAME"
 
-          # Also create zip as backup
-          cd dist-electron
-          app_basename=$(basename "$app_dir")
-          zip -ry "Todo-App-mac.zip" "$app_basename"
-          echo "✅ Zip created"
+          # Also create zip as backup (zip failure is non-critical, DMG is the primary artifact)
+          # app_dir is relative: dist-electron/mac-arm64/Todo App.app
+          zip -ry "dist-electron/Todo-App-mac.zip" "$app_dir" || echo "⚠️ Zip skipped (non-critical)"
       - uses: actions/upload-artifact@v4
         with:
           name: mac-build
