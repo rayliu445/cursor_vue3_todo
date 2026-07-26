@@ -40,10 +40,27 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx electron-builder --mac --publish=never
+      - name: Package macOS app
+        run: |
+          cd dist-electron
+          dmg_file=$(ls *.dmg 2>/dev/null || true)
+          if [ -n "$dmg_file" ]; then
+            echo "DMG found: $dmg_file"
+            mkdir -p ../release/v0.0.1
+            cp "$dmg_file" ../release/v0.0.1/
+          else
+            echo "No DMG, using dir"
+            dir_name=$(ls -d *-unpacked 2>/dev/null || ls -d mac* 2>/dev/null || echo "")
+            if [ -n "$dir_name" ]; then
+              zip -r "../release/Todo-App-mac.zip" "$dir_name"
+            fi
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dmg
-          path: dist-electron/*.dmg
+          path: |
+            dist-electron/*.dmg
+            dist-electron/*.zip
 
   build-win:
     name: Build Windows
