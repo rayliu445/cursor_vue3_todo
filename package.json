@@ -15,8 +15,7 @@
     "mobile:build:ios": "npm run build && npx cap sync ios && xcodebuild -workspace ios/App/App.xcworkspace -scheme App -archivePath ios/App.xcarchive archive && xcodebuild -exportArchive -archivePath ios/App.xcarchive -exportPath ios/App.ipa -exportOptionsPlist ios/exportOptions.plist",
     "mobile:build:android": "npm run build && npx cap sync android && cd android && ./gradlew assembleRelease",
     "release:all": "npm run build && npx cap sync && electron-builder",
-    "release:local": "bash scripts/build-all.sh",
-    "prepare": "husky install"
+    "release:local": "bash scripts/build-all.sh"
   },
   "main": "electron/main.js",
   "dependencies": {
@@ -46,16 +45,10 @@
     "electron-builder": "^24.13.3",
     "eslint": "^8.9.0",
     "eslint-plugin-vue": "^8.5.0",
-    "husky": "^7.0.4",
-    "lint-staged": "^12.3.4",
     "postcss": "^8.4.23",
     "prettier": "^2.5.1",
     "typescript": "^4.5.5",
     "vite": "^2.8.4"
-  },
-  "lint-staged": {
-    "*.{js,ts,vue}": "eslint --cache --fix",
-    "*.{js,css,md}": "prettier --write"
   },
   "build": {
     "appId": "com.todoapp.app",
@@ -65,15 +58,31 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "category": "public.app-category.productivity",
       "artifactName": "${productName}-${version}-mac.${ext}"
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "${productName}-${version}-win.${ext}"
     },
