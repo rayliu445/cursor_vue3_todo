@@ -141,9 +141,10 @@ function createWindow() {
 
   // 根据环境加载不同内容
   if (app.isPackaged) {
-    const indexPath = path.join(__dirname, '../dist/index.html')
+    const indexPath = path.join(app.getAppPath(), 'dist/index.html')
     info('Loading packaged app from: ' + indexPath)
-    mainWindow.loadFile(indexPath)
+    // 使用 file:// URL 加载以确保 asar 内的相对路径正确解析
+    mainWindow.loadURL(`file://${indexPath}`)
   } else {
     info('Loading from development server: http://localhost:3000')
     mainWindow.loadURL('http://localhost:3000')
@@ -172,7 +173,8 @@ function createWindow() {
   })
 
   // 打开开发者工具以便调试（只在有显示环境时打开）
-  // mainWindow.webContents.openDevTools({ mode: 'detach' })
+  mainWindow.webContents.openDevTools({ mode: 'detach' })
+  info('DevTools opened')
 
   mainWindow.on('closed', () => {
     info('Window closed')
