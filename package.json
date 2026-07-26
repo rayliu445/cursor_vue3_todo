@@ -23,6 +23,7 @@
     "@capacitor/cli": "^7.6.8",
     "@capacitor/core": "^8.4.2",
     "@capacitor/ios": "^8.4.2",
+    "@capacitor/preferences": "^8.0.1",
     "@tailwindcss/forms": "^0.5.3",
     "@tailwindcss/typography": "^0.5.9",
     "@vitejs/plugin-vue": "^2.2.2",
@@ -106,6 +107,6 @@
     },
     "afterSign": null
   },
-  "description": "\u5bf9\u6807\u6ef4\u7b54\u6e05\u5355\u7684\u4e2a\u4eba\u4efb\u52a1\u7ba1\u7406\u5de5\u5177",
+  "description": "对标滴答清单的个人任务管理工具",
   "author": "Todo App Team"
 }
