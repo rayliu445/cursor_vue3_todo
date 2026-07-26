@@ -17,7 +17,7 @@ echo ""
 # 1. 编译前端
 echo "[1/5] Building web assets..."
 cd "$PROJECT_DIR"
-npx vite build
+NODE_OPTIONS="--max-old-space-size=4096" npx vite build
 echo "  ✅ Web assets built"
 echo ""
 

@@ -41,13 +41,24 @@ export default defineConfig({
       '@automerge/automerge': path.resolve(__dirname, 'src/services/automerge-replacement.ts'),
     },
   },
-  base: './', // 使用相对路径
+  base: './',
+  optimizeDeps: {
+    exclude: ['sql.js'],
+  },
   server: {
-    port: 3000, // 修改为与Electron配置一致的端口
+    port: 3000,
   },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+        },
+      },
+    },
     minify: 'terser',
     rollupOptions: {
       output: {
