@@ -11,3 +11,4 @@ eslintcache
 # Capacitor (iOS/Android 原生项目, 各平台单独安装)
 ios/
 android/
+release/
