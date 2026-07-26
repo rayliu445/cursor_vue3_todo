@@ -141,7 +141,7 @@ function createWindow() {
 
   // 根据环境加载不同内容
   if (app.isPackaged) {
-    const indexPath = path.join(__dirname, 'dist/index.html')
+    const indexPath = path.join(__dirname, '../dist/index.html')
     info('Loading packaged app from: ' + indexPath)
     mainWindow.loadFile(indexPath)
   } else {
