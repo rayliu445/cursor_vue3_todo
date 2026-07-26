@@ -15,8 +15,8 @@ module.exports = {
     require('@tailwindcss/typography'),
     require('daisyui'),
   ],
-  // 可选：添加 daisyui 配置
+  darkMode: 'class',
   daisyui: {
-    themes: ['light'], // 这里可以选择您想要使用的主题
+    themes: ['light', 'dark'],
   },
 }

@@ -1,6 +1,4 @@
 import HomePage from './views/HomePage.vue'
-// import About from './views/About.vue'
-// import NotFound from './views/NotFound.vue'
 
 export const routes = [
   {
@@ -9,8 +7,28 @@ export const routes = [
     component: HomePage,
   },
   {
+    path: '/calendar',
+    name: 'calendar',
+    component: () => import('./views/CalendarView.vue'),
+  },
+  {
+    path: '/matrix',
+    name: 'matrix',
+    component: () => import('./views/MatrixView.vue'),
+  },
+  {
     path: '/completed',
     name: 'completed',
     component: () => import('./views/CompletedTodos.vue'),
+  },
+  {
+    path: '/import',
+    name: 'import',
+    component: () => import('./views/ImportView.vue'),
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('./views/SettingsView.vue'),
   },
 ]

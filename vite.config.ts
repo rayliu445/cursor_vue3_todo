@@ -38,6 +38,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '@automerge/automerge': path.resolve(__dirname, 'src/services/automerge-replacement.ts'),
     },
   },
   base: './', // 使用相对路径

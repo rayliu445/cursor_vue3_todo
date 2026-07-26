@@ -1,52 +1,105 @@
 
-## 项目简介
+Todo App 是一款对标滴答清单的个人任务管理工具，支持多平台运行和用户自管数据。
 
-该项目旨在帮助用户快速使用 Cursor 工具，构建准确且高效的前端应用。项目集成了现代前端开发所需的多种技术栈，旨在提供一个良好的开发体验。
+## 功能
+
+- 📅 **日历视图** — 月视图 / 周视图 / 日视图，快速添加任务
+- 🔲 **四象限矩阵** — 艾森豪威尔矩阵，手动分类 + 自动规则分类
+- 📥 **滴答清单导入** — 支持 CSV / JSON 格式导入历史数据
+- 💾 **本地持久化** — IndexedDB + localStorage 双备份，数据不丢失
+- 🌙 **暗黑模式** — 亮色 / 暗黑 / 跟随系统
+- 🔄 **WebDAV 云同步** — 连接坚果云、NextCloud 等，多端数据互通
+- ✏️ **任务管理** — 添加 / 编辑 / 删除 / 搜索 / 优先级 / 截止日期
+- ⚙️ **设置页面** — 数据导出导入、云存储配置、主题切换
+
+## 平台
+
+| 平台 | 安装包 | 技术 |
+|------|--------|------|
+| 🖥️ macOS | `.dmg` | Electron 30 |
+| 🖥️ Windows | `.exe` (NSIS) / `.exe` (Portable) | Electron 30 |
+| 📱 iOS | `.ipa` (AltStore 侧载) | Capacitor 8 |
+| 📱 Android | `.apk` | Capacitor 8 |
+| 🌐 Web | 浏览器直接访问 | Vite 2 |
+
+完整安装指南请查看 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ## 技术栈
 
-- **Vue 3**：采用 Vue 3 框架构建现代化的用户界面。
-- **TypeScript**：使用 TypeScript 提供强类型支持，提高代码的可维护性。
-- **Tailwind CSS**：使用 Tailwind CSS 进行快速且响应式的样式设计。
-- **简单的全局状态管理**：内置简单的状态管理，方便管理应用状态。
-- **Vue Router**：支持路由功能，便于构建单页应用（SPA）。
-- **ESLint**：集成 ESLint，确保代码质量和一致性。
+| 类别 | 技术 |
+|------|------|
+| 前端框架 | Vue 3 (Composition API + `<script setup>`) |
+| 语言 | TypeScript |
+| 状态管理 | Pinia |
+| 路由 | Vue Router 4 (History 模式) |
+| 样式 | Tailwind CSS 3 + daisyUI 3 |
+| 桌面端 | Electron 30 + electron-builder |
+| 移动端 | Capacitor 8 |
+| 数据引擎 | CRDT (无冲突合并，纯 TS 实现) |
+| 数据存储 | IndexedDB + localStorage (双备份) |
+| 云同步 | WebDAV (坚果云 / NextCloud / Synology) |
+| 构建工具 | Vite 2 |
 
-## 特性
+## 数据架构
 
-- **快速启动**：通过 Cursor 工具，用户可以快速搭建项目框架。
-- **可扩展性**：提供基础结构，用户可以根据需求扩展功能。
-- **清晰的代码结构**：按照最佳实践组织代码，易于理解和维护。
+```
+用户数据 → CRDT 文档 → IndexedDB (主) + localStorage (备)
+                      → WebDAV 同步 → 用户云盘
+                      → 完全去中心化，无中心服务器
+```
+
+用户通过配置自己的 WebDAV 账号（如坚果云）实现多端同步，
+无需注册任何第三方服务平台。
 
 ## 快速开始
 
-1. **克隆项目**
+```bash
+# 开发模式
+npm install
+npm run dev
+# 访问 http://localhost:3000
 
-   ```bash
-   git clone https://github.com/pig-mesh/cursor-vue3-ts-tailwind-starter.git
-   ```
+# 构建桌面端
+npm run dist          # macOS .dmg
+# 或
+npm run electron:build  # 构建但不打包
 
-2. **安装依赖**
+# 构建移动端 (需要 Xcode / Android SDK)
+npm run mobile:build:ios
+npm run mobile:build:android
+```
 
-   ```bash
-   npm install
-   ```
+## 项目结构
 
-3. **运行开发服务器**
+```
+├── src/
+│   ├── views/           # 页面视图
+│   ├── components/      # 组件
+│   ├── stores/          # Pinia 状态管理
+│   ├── services/        # 服务层 (CRDT / 存储 / 同步)
+│   └── router/          # 路由配置
+├── electron/            # Electron 主进程
+├── dist/                # 编译输出
+├── docs/                # 文档
+│   ├── INSTALL.md       # 安装指南
+│   └── adr-001-*.md     # 架构决策记录
+└── release/             # 发布说明
+```
 
-   ```bash
-   npm run serve
-   ```
+## 构建命令
 
-4. **访问应用**
-
-   打开浏览器，访问 `http://localhost:3000` 查看您的应用。
-
-## 贡献
-
-欢迎任何形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解更多信息。
+| 命令 | 输出 | 说明 |
+|------|------|------|
+| `npm run dev` | — | 开发服务器 (localhost:3000) |
+| `npm run build` | `dist/` | 编译前端资源 |
+| `npm run dist` | `.dmg` | macOS 安装包 |
+| `npm run electron:build` | `dist-electron/` | macOS 构建目录 |
+| `npm run mobile:sync` | `ios/` `android/` | 同步前端到原生项目 |
+| `npm run mobile:build:ios` | `.ipa` | iOS 安装包 (需 Xcode) |
+| `npm run mobile:build:android` | `.apk` | Android 安装包 |
+| `npm run release:all` | 全部 | 一键全平台构建 |
 
 ## 许可证
 
-本项目采用 [MIT 许可证](LICENSE) 开源。
+[MIT](LICENSE)
 

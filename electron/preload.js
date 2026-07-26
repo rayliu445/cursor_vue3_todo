@@ -3,18 +3,24 @@ const { contextBridge, ipcRenderer } = require('electron')
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
-  // API for getting todos
+  // ============ 基础 CRUD（向后兼容） ============
   getTodos: () => ipcRenderer.invoke('get-todos'),
-
-  // API for adding a todo
   addTodo: (todo) => ipcRenderer.invoke('add-todo', todo),
-
-  // API for removing a todo
   removeTodo: (id) => ipcRenderer.invoke('remove-todo', id),
-
-  // API for toggling a todo's completion status
   toggleTodo: (id) => ipcRenderer.invoke('toggle-todo', id),
-
-  // API for updating a todo
   updateTodo: (id, updates) => ipcRenderer.invoke('update-todo', id, updates),
+  bulkAddTodos: (items) => ipcRenderer.invoke('bulk-add-todos', items),
+
+  // ============ CRDT 数据同步 ============
+  exportCRDTFile: (data) => ipcRenderer.invoke('export-crdt-file', data),
+  importCRDTFile: () => ipcRenderer.invoke('import-crdt-file'),
+  exportJSON: (jsonData) => ipcRenderer.invoke('export-json', jsonData),
+
+  // ============ 数据目录 ============
+  getDataPath: () => ipcRenderer.invoke('get-data-path'),
+
+  // ============ iCloud Drive 同步 ============
+  getICloudPath: () => ipcRenderer.invoke('get-icloud-path'),
+  readICloudFile: (relativePath) => ipcRenderer.invoke('read-icloud-file', relativePath),
+  writeICloudFile: (relativePath, data) => ipcRenderer.invoke('write-icloud-file', relativePath, data),
 })

@@ -1,7 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
-const { spawn } = require('child_process')
 
 // 读取外部配置文件
 const configPath = path.join(app.getAppPath(), 'config.json')
@@ -71,16 +70,26 @@ function error(message) {
   log('ERROR', message)
 }
 
-// 数据存储文件路径
-const dbPath = path.join(app.getPath('userData'), 'db.json')
+// 数据存储目录 (用户可见)
+const DATA_DIR = path.join(app.getPath('userData'), 'data')
+const dbPath = path.join(DATA_DIR, 'db.json')
+const CRDT_PATH = path.join(DATA_DIR, 'todo.crdt')
+const JSON_EXPORT_PATH = path.join(DATA_DIR, 'todo-data.json')
 
-// 确保数据文件存在
+// 确保数据目录存在
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true })
+    info(`Created data directory: ${DATA_DIR}`)
+  }
+}
+
+// 确保数据目录和文件存在
 function ensureDbExists() {
+  ensureDataDir()
   if (!fs.existsSync(dbPath)) {
     info('Database does not exist, creating new one')
     fs.writeFileSync(dbPath, JSON.stringify({ todos: [] }))
-  } else {
-    debug('Database file exists')
   }
 }
 
@@ -101,7 +110,15 @@ function readDb() {
 // 写入数据
 function writeDb(data) {
   try {
+    ensureDataDir()
     fs.writeFileSync(dbPath, JSON.stringify(data, null, 2))
+    // 同时写入用户可见的 JSON 文件
+    const userFriendly = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      todos: data.todos || [],
+    }
+    fs.writeFileSync(JSON_EXPORT_PATH, JSON.stringify(userFriendly, null, 2))
     debug(`Successfully wrote ${data.todos.length} todos to database`)
   } catch (error) {
     error(`Error writing to database: ${error.message}`)
@@ -109,8 +126,6 @@ function writeDb(data) {
 }
 
 let mainWindow
-let serverProcess = null
-
 function createWindow() {
   info('Creating browser window')
 
@@ -124,57 +139,14 @@ function createWindow() {
     },
   })
 
-  // 判断是否为生产环境
-  const isProduction = app.isPackaged
-
-  info(
-    'Application environment: ' + (isProduction ? 'production' : 'development'),
-  )
-
   // 根据环境加载不同内容
-  if (isProduction) {
-    // 在生产环境中启动后端服务器
-    const serverPath = path.join(
-      process.resourcesPath,
-      'app',
-      'server',
-      'server.js',
-    )
-
-    if (fs.existsSync(serverPath)) {
-      info('Starting backend server...')
-      serverProcess = spawn(process.execPath, [serverPath], {
-        detached: true,
-        stdio: 'ignore',
-      })
-
-      serverProcess.unref() // 让子进程独立运行
-
-      // 等待服务器启动
-      setTimeout(() => {
-        const indexPath = path.join(__dirname, 'dist/index.html')
-        info('Loading packaged app from: ' + indexPath)
-
-        if (!fs.existsSync(indexPath)) {
-          error('ERROR: Index file does not exist at path: ' + indexPath)
-        } else {
-          info('SUCCESS: Index file exists at path: ' + indexPath)
-        }
-
-        mainWindow.loadFile(indexPath)
-      }, 2000) // 等待2秒让服务器启动
-    } else {
-      error('Server file not found at: ' + serverPath)
-      const indexPath = path.join(__dirname, 'dist/index.html')
-      mainWindow.loadFile(indexPath)
-    }
+  if (app.isPackaged) {
+    const indexPath = path.join(__dirname, 'dist/index.html')
+    info('Loading packaged app from: ' + indexPath)
+    mainWindow.loadFile(indexPath)
   } else {
     info('Loading from development server: http://localhost:3000')
     mainWindow.loadURL('http://localhost:3000')
-
-    // 开发环境下启动后端服务器
-    const { createServer } = require('./server/server')
-    createServer()
   }
 
   // 检查页面加载错误
@@ -223,14 +195,33 @@ ipcMain.handle('get-todos', async () => {
   return db.todos
 })
 
+// 获取数据目录路径（用户可见的文件夹）
+ipcMain.handle('get-data-path', async () => {
+  ensureDataDir()
+  return {
+    dir: DATA_DIR,
+    dbFile: dbPath,
+    jsonExport: JSON_EXPORT_PATH,
+    crdtFile: CRDT_PATH,
+  }
+})
+
 ipcMain.handle('add-todo', async (event, todo) => {
   debug(`Handling add-todo request: ${JSON.stringify(todo)}`)
   const db = readDb()
   const newTodo = {
     id: Date.now().toString(),
     title: todo.title,
-    completed: false,
-    createdAt: new Date().toISOString(),
+    completed: todo.completed ?? false,
+    priority: todo.priority ?? 0,
+    dueDate: todo.dueDate || null,
+    startDate: todo.startDate || null,
+    content: todo.content || null,
+    tags: todo.tags || [],
+    list: todo.list || null,
+    isAllDay: todo.isAllDay ?? false,
+    completedTime: todo.completedTime || null,
+    createdAt: todo.createdAt || new Date().toISOString(),
   }
 
   db.todos.push(newTodo)
@@ -279,6 +270,10 @@ ipcMain.handle('update-todo', async (event, id, updates) => {
   const todoIndex = db.todos.findIndex((todo) => todo.id === id)
 
   if (todoIndex !== -1) {
+    // 如果标记完成，记录完成时间
+    if (updates.completed === true && !db.todos[todoIndex].completedTime) {
+      updates.completedTime = new Date().toISOString()
+    }
     db.todos[todoIndex] = { ...db.todos[todoIndex], ...updates }
     writeDb(db)
     info(`Updated todo with id: ${id}`)
@@ -287,6 +282,183 @@ ipcMain.handle('update-todo', async (event, id, updates) => {
 
   warn(`Todo with id ${id} not found for update`)
   return null
+})
+
+// 批量添加待办事项
+ipcMain.handle('bulk-add-todos', async (event, items) => {
+  debug(`Handling bulk-add-todos request with ${items.length} items`)
+  const db = readDb()
+  let successCount = 0
+
+  for (const todo of items) {
+    try {
+      const newTodo = {
+        id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 8),
+        title: todo.title,
+        completed: todo.completed ?? false,
+        priority: todo.priority ?? 0,
+        dueDate: todo.dueDate || null,
+        startDate: todo.startDate || null,
+        content: todo.content || null,
+        tags: todo.tags || [],
+        list: todo.list || null,
+        isAllDay: todo.isAllDay ?? false,
+        completedTime: todo.completedTime || null,
+        createdAt: todo.createdAt || new Date().toISOString(),
+      }
+      db.todos.push(newTodo)
+      successCount++
+    } catch (err) {
+      error(`Error adding todo in bulk: ${err.message}`)
+    }
+  }
+
+  writeDb(db)
+  info(`Bulk added ${successCount}/${items.length} todos`)
+  return { success: successCount, total: items.length }
+})
+
+// ============ CRDT 数据同步相关 IPC ============
+
+/**
+ * 导出 CRDT 数据文件（让用户选择保存位置）
+ * 用于备份或手动传输到其他设备
+ */
+ipcMain.handle('export-crdt-file', async (event, data) => {
+  debug('Handling export-crdt-file request')
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: '导出数据备份',
+      defaultPath: `todo-backup-${new Date().toISOString().slice(0, 10)}.automerge`,
+      filters: [
+        { name: 'Automerge 数据', extensions: ['automerge'] },
+        { name: '所有文件', extensions: ['*'] },
+      ],
+    })
+
+    if (!result.canceled && result.filePath) {
+      // data 是 base64 编码的 Uint8Array
+      const buffer = Buffer.from(data, 'base64')
+      fs.writeFileSync(result.filePath, buffer)
+      info(`Exported CRDT data to ${result.filePath}`)
+      return { success: true, filePath: result.filePath }
+    }
+    return { success: false, canceled: true }
+  } catch (err) {
+    error(`Error exporting CRDT file: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+/**
+ * 导入 CRDT 数据文件（让用户选择要导入的文件）
+ */
+ipcMain.handle('import-crdt-file', async () => {
+  debug('Handling import-crdt-file request')
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '导入数据备份',
+      filters: [
+        { name: 'Automerge 数据', extensions: ['automerge'] },
+        { name: '所有文件', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    })
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0]
+      const buffer = fs.readFileSync(filePath)
+      info(`Importing CRDT data from ${filePath}`)
+      return {
+        success: true,
+        data: buffer.toString('base64'),
+        filePath,
+      }
+    }
+    return { success: false, canceled: true }
+  } catch (err) {
+    error(`Error importing CRDT file: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+/**
+ * 导出为 JSON（人类可读格式，用于查看/备份）
+ */
+ipcMain.handle('export-json', async (event, jsonData) => {
+  debug('Handling export-json request')
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: '导出 JSON 备份',
+      defaultPath: `todos-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [
+        { name: 'JSON 文件', extensions: ['json'] },
+        { name: '所有文件', extensions: ['*'] },
+      ],
+    })
+
+    if (!result.canceled && result.filePath) {
+      fs.writeFileSync(result.filePath, jsonData, 'utf-8')
+      info(`Exported JSON to ${result.filePath}`)
+      return { success: true, filePath: result.filePath }
+    }
+    return { success: false, canceled: true }
+  } catch (err) {
+    error(`Error exporting JSON: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+/**
+ * 获取 iCloud Drive 路径（macOS）
+ */
+ipcMain.handle('get-icloud-path', async () => {
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  const icloudPath = path.join(
+    home,
+    'Library/Mobile Documents/com~apple~CloudDocs',
+  )
+  const exists = fs.existsSync(icloudPath)
+  return { path: icloudPath, exists }
+})
+
+/**
+ * 读取/写入 iCloud Drive 中的同步文件
+ */
+ipcMain.handle('read-icloud-file', async (event, relativePath) => {
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  const fullPath = path.join(
+    home,
+    'Library/Mobile Documents/com~apple~CloudDocs',
+    relativePath,
+  )
+  try {
+    if (!fs.existsSync(fullPath)) return { success: true, data: null }
+    const buffer = fs.readFileSync(fullPath)
+    return { success: true, data: buffer.toString('base64') }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('write-icloud-file', async (event, relativePath, base64Data) => {
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  const fullPath = path.join(
+    home,
+    'Library/Mobile Documents/com~apple~CloudDocs',
+    relativePath,
+  )
+  try {
+    const dir = path.dirname(fullPath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+    const buffer = Buffer.from(base64Data, 'base64')
+    fs.writeFileSync(fullPath, buffer)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
 })
 
 app.whenReady().then(() => {
@@ -300,12 +472,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', function () {
   info('All windows closed, quitting app')
-
-  // 关闭服务器进程
-  if (serverProcess) {
-    serverProcess.kill()
-  }
-
   if (process.platform !== 'darwin') app.quit()
 })
 
