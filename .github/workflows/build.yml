@@ -2,9 +2,9 @@ name: Build & Release
 
 on:
   push:
-    branches: [ main ]     # 推送到 main 时构建
+    branches: [ main ]
     tags:
-      - 'v*'               # 推送 tag 时发布 Release
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -39,28 +39,25 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npx electron-builder --mac --publish=never
-      - name: Package macOS app
+      - name: Build macOS app bundle
+        run: npx electron-builder --mac --publish=never
+      - name: Package app into zip
         run: |
           cd dist-electron
-          dmg_file=$(ls *.dmg 2>/dev/null || true)
-          if [ -n "$dmg_file" ]; then
-            echo "DMG found: $dmg_file"
-            mkdir -p ../release/v0.0.1
-            cp "$dmg_file" ../release/v0.0.1/
+          # electron-builder --mac dir outputs to mac-arm64/ directory
+          app_dir=$(ls -d mac-arm64 2>/dev/null || ls -d */ 2>/dev/null | head -1)
+          if [ -n "$app_dir" ]; then
+            echo "Packaging $app_dir"
+            zip -ry "Todo-App-mac.zip" "$app_dir"
           else
-            echo "No DMG, using dir"
-            dir_name=$(ls -d *-unpacked 2>/dev/null || ls -d mac* 2>/dev/null || echo "")
-            if [ -n "$dir_name" ]; then
-              zip -r "../release/Todo-App-mac.zip" "$dir_name"
-            fi
+            echo "ERROR: No mac build output found"
+            ls -la
+            exit 1
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: mac-dmg
-          path: |
-            dist-electron/*.dmg
-            dist-electron/*.zip
+          name: mac-build
+          path: dist-electron/Todo-App-mac.zip
 
   build-win:
     name: Build Windows
@@ -75,10 +72,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npx electron-builder --win --publish=never
+      - name: Build Windows portable exe
+        run: npx electron-builder --win portable --publish=never
       - uses: actions/upload-artifact@v4
         with:
-          name: win-exe
+          name: win-build
           path: dist-electron/*.exe
 
   build-android:
@@ -97,23 +95,36 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: |
+          # Install minimal SDK (no full Android Studio needed)
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq android-sdk 2>/dev/null || true
+          # Fallback: use sdkmanager
+          which sdkmanager 2>/dev/null || echo "using cmdline-tools"
+          export ANDROID_HOME=$ANDROID_SDK_ROOT
       - run: npm ci
       - run: npm run build
-      - name: Initialize Android project
+      - name: Set up Android project
         run: |
+          export ANDROID_HOME="/usr/lib/android-sdk"
+          # Accept licenses
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          # Add Android project if not exists
           if [ ! -d "android" ]; then
-            npx cap add android
-          else
-            npx cap sync android
+            npx cap add android --skip-confirmation 2>&1 || npx cap add android
           fi
+          npx cap sync android
+        env:
+          CI: true
       - name: Build APK
-        working-directory: android
-        run: ./gradlew assembleDebug
+        run: |
+          export ANDROID_HOME="/usr/lib/android-sdk"
+          cd android
+          ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-build
           path: android/app/build/outputs/apk/debug/*.apk
 
   create-release:
@@ -125,14 +136,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
-      - name: Organize release files
+      - name: Prepare release files
         run: |
           mkdir -p release
           cp web-dist/* release/ 2>/dev/null || true
-          cp mac-dmg/* release/ 2>/dev/null || true
-          cp win-exe/* release/ 2>/dev/null || true
-          cp android-apk/* release/ 2>/dev/null || true
-      - name: Create Release
+          cp mac-build/* release/ 2>/dev/null || true
+          cp win-build/* release/ 2>/dev/null || true
+          cp android-build/* release/ 2>/dev/null || true
+          ls -lh release/
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: release/*

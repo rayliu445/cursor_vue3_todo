@@ -66,16 +66,10 @@
         }
       ],
       "category": "public.app-category.productivity",
-      "artifactName": "${productName}-${version}-mac.${ext}"
+      "artifactName": "Todo-App-${version}-mac"
     },
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
         {
           "target": "portable",
           "arch": [
@@ -83,12 +77,7 @@
           ]
         }
       ],
-      "artifactName": "${productName}-${version}-win.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "artifactName": "Todo-App-${version}-win.exe"
     },
     "files": [
       "dist/**/*",
@@ -115,5 +104,7 @@
       ]
     },
     "afterSign": null
-  }
+  },
+  "description": "\u5bf9\u6807\u6ef4\u7b54\u6e05\u5355\u7684\u4e2a\u4eba\u4efb\u52a1\u7ba1\u7406\u5de5\u5177",
+  "author": "Todo App Team"
 }
