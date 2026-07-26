@@ -8,39 +8,37 @@ import { getSyncEngine } from './services/sync-engine'
 import { initTheme } from './stores/theme'
 import './index.css'
 
-// ============ 初始化 CRDT 数据层 ============
-async function initializeApp() {
-  // 初始化数据访问层（加载 CRDT 文档）
-  const dataAccess = createDataAccess()
-  await dataAccess.initialize()
-  console.log('[App] CRDT data layer initialized')
+// ============ 创建 Vue 应用（先挂载，不阻塞 UI） ============
+const app = createApp(App)
+const pinia = createPinia()
 
-  // 尝试从旧版 db.json 迁移（如果存在且 CRDT 文档为空）
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes,
+})
+
+app.use(pinia)
+app.use(router)
+app.mount('#app')
+
+// 初始化主题
+initTheme()
+
+// ============ 异步初始化数据层（不阻塞渲染） ============
+async function initializeDataLayer() {
   try {
-    const currentTodos = dataAccess.getTodos()
-    if (currentTodos.length === 0) {
-      // 之前已有默认样本数据，无需迁移
-      console.log('[App] CRDT document initialized')
-    }
-  } catch {
-    console.log('[App] Initializing fresh CRDT document')
+    const dataAccess = createDataAccess()
+    await dataAccess.initialize()
+    console.log('[App] CRDT data layer initialized')
+
+    // 通知 store 刷新数据
+    const { useTodoStore } = await import('./stores/todo')
+    const store = useTodoStore()
+    store.fetchTodos()
+    console.log('[App] Todos refreshed after data layer init')
+  } catch (err) {
+    console.error('[App] Data layer init failed (app still works):', err)
   }
-
-  // ============ 创建 Vue 应用 ============
-  const app = createApp(App)
-  const pinia = createPinia()
-
-  const router = createRouter({
-    history: createWebHashHistory(),
-    routes,
-  })
-
-  app.use(pinia)
-  app.use(router)
-  app.mount('#app')
-
-  // 初始化主题（必须在 DOM 就绪后）
-  initTheme()
 }
 
-initializeApp().catch(console.error)
+initializeDataLayer()

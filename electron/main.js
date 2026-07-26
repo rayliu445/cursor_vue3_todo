@@ -2,6 +2,9 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
+// 允许 file:// 协议加载 ES Module（解决 type="module" + file:// 的 CORS 限制）
+app.commandLine.appendSwitch('--allow-file-access-from-files')
+
 // 读取外部配置文件
 const configPath = path.join(app.getAppPath(), 'config.json')
 let appConfig = {
@@ -164,17 +167,72 @@ function createWindow() {
   mainWindow.webContents.on(
     'console-message',
     (event, level, message, line, sourceId) => {
-      debug(`Console message [${level}]: ${message} at ${sourceId}:${line}`)
+      const levels = ['verbose', 'info', 'warning', 'error']
+      info(`Console [${levels[level]||level}]: ${message}`)
+      if (level >= 2) debug(`Console detail: at ${sourceId}:${line}`)
     },
   )
 
+  // 监听渲染进程未捕获错误
+  mainWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+    error(`Preload error: ${error.message} at ${preloadPath}`)
+  })
+
+  mainWindow.webContents.on('crashed', (sender, killed) => {
+    error(`Renderer process crashed: killed=${killed}`)
+  })
+
+  // 注入全局错误捕获
   mainWindow.webContents.on('dom-ready', () => {
     info('DOM is ready')
+    mainWindow.webContents.executeJavaScript(`
+      window.__capturedErrors = [];
+      window.onerror = function(msg, url, line, col, err) {
+        window.__capturedErrors.push({msg, url, line, col, stack: err?.stack});
+        console.error('GLOBAL_ERROR:', msg, 'at', url, line, col);
+        return true;
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        window.__capturedErrors.push({reason: e.reason?.message || String(e.reason), stack: e.reason?.stack});
+        console.error('UNHANDLED_REJECTION:', e.reason);
+      });
+    `).catch(e => {
+      error('Failed to inject error handler: ' + e.message)
+    })
   })
 
   // 打开开发者工具以便调试（只在有显示环境时打开）
   mainWindow.webContents.openDevTools({ mode: 'detach' })
   info('DevTools opened')
+
+  // 延迟检查页面 DOM 内容
+  setTimeout(() => {
+    // 检查 DOM 内容
+    mainWindow.webContents.executeJavaScript('document.getElementById("app").innerHTML.length').then(len => {
+      info('APP_CONTENT_LENGTH: ' + len)
+      // 如果内容为空，检查是否有捕获的错误
+      if (len === 0) {
+        mainWindow.webContents.executeJavaScript('window.__capturedErrors || []').then(errors => {
+          if (errors && errors.length > 0) {
+            errors.forEach((e, i) => {
+              info(`CAPTURED_ERROR[${i}]: ${JSON.stringify(e)}`)
+            })
+          } else {
+            info('NO_CAPTURED_ERRORS')
+          }
+        }).catch(() => {})
+      }
+    }).catch(e => {
+      info('APP_CHECK_ERR: ' + e.message)
+    })
+
+    // 检查 HTML 是否包含必要的元素
+    mainWindow.webContents.executeJavaScript('document.querySelector("script") ? document.querySelector("script").src : "NO_SCRIPT"').then(src => {
+      info('SCRIPT_SRC: ' + src)
+    }).catch(e => {
+      info('SCRIPT_CHECK_ERR: ' + e.message)
+    })
+  }, 10000)
 
   mainWindow.on('closed', () => {
     info('Window closed')
