@@ -103,8 +103,8 @@ jobs:
         run: |
           if [ ! -d "android" ]; then
             CI=true npx cap add android 2>&1 || npx cap add android
-            # Fix Kotlin duplicate class conflict (GNU sed on ubuntu)
-            sed -i 's/configurations.all {/configurations {\n    all {\n        exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"\n        exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"\n    }\n}\n\nconfigurations.all {/' android/app/build.gradle
+            # Fix Kotlin duplicate class conflict (exclude kotlin-stdlib-jdk7/8)
+            python3 scripts/fix-kotlin-conflict.py
           fi
           npx cap sync android
         env:
