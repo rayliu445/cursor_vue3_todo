@@ -66,7 +66,19 @@
             </div>
           </template>
           <template v-if="p.type === 'gdrive'">
-            <div class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400">Google Drive 需配置 OAuth 2.0，即将支持。</div>
+            <div class="space-y-2.5">
+              <div>
+                <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">客户端 ID（Client ID）</label>
+                <input v-model="p.config.clientId" type="text" placeholder="从 Google Cloud Console 获取" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+              </div>
+              <div v-if="p.enabled" class="bg-green-50/50 dark:bg-green-900/20 rounded-lg px-3 py-2.5 text-xs text-green-600 dark:text-green-400">
+                ✅ Google Drive 已连接。同步文件将存储在「TodoApp」文件夹中。
+              </div>
+              <div v-else class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400">
+                连接后将打开浏览器进行 Google 账号授权。需要先创建 OAuth 凭据，详见
+                <a href="https://console.cloud.google.com/" target="_blank" class="underline">Google Cloud Console</a>。
+              </div>
+            </div>
           </template>
           <template v-if="p.type === 'local'">
             <div class="bg-amber-50/50 dark:bg-amber-900/20 rounded-lg px-3 py-2.5 text-xs text-amber-600 dark:text-amber-400 mb-2.5">仅桌面端。配合 iCloud Drive / Dropbox 使用。</div>

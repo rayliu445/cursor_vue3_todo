@@ -4,6 +4,7 @@ import { getSyncEngine, type SyncEngine } from '../services/sync-engine'
 import type { SyncConfig } from '../services/providers/types'
 import { DEFAULT_SYNC_CONFIG } from '../services/providers/types'
 import { WebDAVProvider, type WebDAVConfig } from '../services/providers/webdav'
+import { GoogleDriveProvider, type GoogleDriveConfig } from '../services/providers/gdrive'
 
 // ============ 类型 ============
 
@@ -164,9 +165,30 @@ export const useSettingsStore = defineStore('settings', () => {
           provider.lastError = '本地文件系统仅支持 Electron 桌面端'
         }
       } else if (provider.type === 'gdrive') {
-        // Google Drive - 桩代码
-        provider.status = 'error'
-        provider.lastError = 'Google Drive 集成需要配置 OAuth，即将支持'
+        // Google Drive - OAuth 2.0 with PKCE
+        try {
+          if (!provider.config.clientId) {
+            throw new Error('请先在 Google Cloud Console 创建 OAuth 凭据并填入客户端 ID')
+          }
+          const gdriveConfig: GoogleDriveConfig = {
+            clientId: provider.config.clientId,
+          }
+          const gdriveProvider = new GoogleDriveProvider(gdriveConfig)
+          await gdriveProvider.initialize()
+          // 检查是否有有效 token
+          if (!gdriveProvider.isAuthenticated) {
+            // 启动 OAuth 授权
+            const authorized = await gdriveProvider.authorize()
+            if (!authorized) {
+              throw new Error('Google Drive 授权失败')
+            }
+          }
+          await syncEngine.setProvider(gdriveProvider)
+          provider.status = 'connected'
+        } catch (err) {
+          provider.status = 'error'
+          provider.lastError = err instanceof Error ? err.message : 'Google Drive 连接失败'
+        }
       }
 
       settings.value.sync.enabled = provider.status === 'connected'
@@ -180,6 +202,15 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** 断开云存储连接 */
   async function disconnectProvider() {
+    // 如果当前是 Google Drive，先撤销 token
+    const active = activeProvider.value
+    if (active?.type === 'gdrive') {
+      try {
+        const { GoogleDriveProvider } = await import('../services/providers/gdrive')
+        // 直接清除本地存储的 token
+        localStorage.removeItem('gdrive-tokens')
+      } catch { /* ignore */ }
+    }
     syncEngine.destroy()
     settings.value.providers.forEach(p => {
       p.enabled = false
