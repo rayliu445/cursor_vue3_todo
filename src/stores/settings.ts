@@ -217,7 +217,14 @@ function loadSettings(): AppSettings {
     const saved = localStorage.getItem(SETTINGS_KEY)
     if (saved) {
       const parsed = JSON.parse(saved)
-      return { ...DEFAULT_SETTINGS, ...parsed, providers: parsed.providers || DEFAULT_SETTINGS.providers }
+      // 合并 providers：保留已连接的 provider，但确保所有默认 provider 都存在
+      const defaultProviders = DEFAULT_SETTINGS.providers.map(p => ({ ...p }))
+      const savedProviders = parsed.providers || []
+      const mergedProviders = defaultProviders.map(dp => {
+        const saved = savedProviders.find((sp: any) => sp.id === dp.id)
+        return saved ? { ...dp, ...saved } : dp
+      })
+      return { ...DEFAULT_SETTINGS, ...parsed, providers: mergedProviders }
     }
   } catch {
     // ignore

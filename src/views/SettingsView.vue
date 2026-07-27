@@ -61,7 +61,8 @@
             </div>
             <div>
               <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Region（地域）</label>
-              <input v-model="store.settings.providers[0].config.region" type="text" placeholder="cn-east-1（华东）" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+              <input v-model="store.settings.providers[0].config.region" type="text" placeholder="cn-east-1（华东）| cn-north-1（华北）| cn-south-1（华南）" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+              <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">七牛云控制台 → 空间概览可查看地域，常见映射：华东=cn-east-1，华北=cn-north-1，华南=cn-south-1</div>
             </div>
             <div>
               <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">AccessKey ID</label>
