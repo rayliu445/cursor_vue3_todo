@@ -39,63 +39,38 @@
         </div>
         <div v-if="syncErrorMessage" class="mt-2 text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{{ syncErrorMessage }}</div>
       </div>
-      <div v-for="p in store.settings.providers" :key="p.id" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 shadow-sm overflow-hidden" :class="{ 'ring-1 ring-blue-500/20 dark:ring-blue-400/30': p.enabled }">
-        <div class="flex items-center justify-between px-4 py-3.5 cursor-pointer select-none" @click="expanded = expanded === p.id ? null : p.id">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 shadow-sm overflow-hidden" :class="{ 'ring-1 ring-blue-500/20 dark:ring-blue-400/30': store.activeProvider?.enabled }">
+        <div class="flex items-center justify-between px-4 py-3.5">
           <div class="flex items-center gap-3">
-            <span class="text-lg">{{ { webdav: '&#x1F310;', gdrive: '&#x1F4C1;', local: '&#x1F4BB;' }[p.type] }}</span>
+            <span class="text-lg">&#x1F4C1;</span>
             <div>
-              <div class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ p.name }}</div>
-              <div class="text-xs text-gray-400 dark:text-gray-400">{{ { webdav: '坚果云 / NextCloud', gdrive: '需 OAuth 配置', local: '桌面端' }[p.type] }}</div>
+              <div class="text-sm font-medium text-gray-800 dark:text-gray-100">Google Drive</div>
+              <div class="text-xs text-gray-400 dark:text-gray-400">15GB 免费空间，不限速</div>
             </div>
           </div>
           <div class="flex items-center gap-2.5">
-            <span v-if="p.enabled" class="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-0.5 rounded-full font-medium">已连接</span>
+            <span v-if="store.activeProvider?.enabled" class="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2.5 py-0.5 rounded-full font-medium">已连接</span>
             <span v-else class="text-xs text-gray-300 dark:text-gray-500">未配置</span>
-            <span class="text-gray-300 dark:text-gray-500 text-xs transition-transform" :class="{ 'rotate-180': expanded === p.id }">&#x25BE;</span>
           </div>
         </div>
-        <div v-if="expanded === p.id" class="border-t border-gray-50 dark:border-gray-600 px-4 py-3.5 bg-gray-50/50 dark:bg-gray-700/30">
-          <template v-if="p.type === 'webdav'">
-            <div class="space-y-2.5">
-              <div><label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">服务器地址</label><input v-model="p.config.url" type="url" placeholder="https://dav.jianguoyun.com/dav/" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" /></div>
-              <div class="grid grid-cols-2 gap-2.5">
-                <div><label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">用户名</label><input v-model="p.config.username" type="text" placeholder="用户名" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" /></div>
-                <div><label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">密码</label><input v-model="p.config.password" type="password" placeholder="应用密码" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" /></div>
-              </div>
-              <div><label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">路径</label><input v-model="p.config.basePath" type="text" placeholder="TodoApp" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" /></div>
+        <div class="border-t border-gray-50 dark:border-gray-600 px-4 py-3.5 bg-gray-50/50 dark:bg-gray-700/30">
+          <div class="space-y-2.5">
+            <div>
+              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">客户端 ID（Client ID）</label>
+              <input v-model="store.settings.providers[0].config.clientId" type="text" placeholder="从 Google Cloud Console 获取" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
             </div>
-          </template>
-          <template v-if="p.type === 'gdrive'">
-            <div class="space-y-2.5">
-              <div>
-                <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">客户端 ID（Client ID）</label>
-                <input v-model="p.config.clientId" type="text" placeholder="从 Google Cloud Console 获取" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
-              </div>
-              <div v-if="p.enabled" class="bg-green-50/50 dark:bg-green-900/20 rounded-lg px-3 py-2.5 text-xs text-green-600 dark:text-green-400">
-                ✅ Google Drive 已连接。同步文件将存储在「TodoApp」文件夹中。
-              </div>
-              <div v-else class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400">
-                连接后将打开浏览器进行 Google 账号授权。需要先创建 OAuth 凭据，详见
-                <a href="https://console.cloud.google.com/" target="_blank" class="underline">Google Cloud Console</a>。
-              </div>
+            <div v-if="store.activeProvider?.enabled" class="bg-green-50/50 dark:bg-green-900/20 rounded-lg px-3 py-2.5 text-xs text-green-600 dark:text-green-400">
+              ✅ Google Drive 已连接。同步文件将存储在「TodoApp」文件夹中。
             </div>
-          </template>
-          <template v-if="p.type === 'local'">
-            <div class="bg-amber-50/50 dark:bg-amber-900/20 rounded-lg px-3 py-2.5 text-xs text-amber-600 dark:text-amber-400 mb-2.5">仅桌面端。配合 iCloud Drive / Dropbox 使用。</div>
-            <div><label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">同步目录</label><input v-model="p.config.syncPath" type="text" placeholder="~/TodoApp" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" /></div>
-          </template>
+            <div v-else class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400">
+              连接后将打开浏览器进行 Google 账号授权。需要先创建 OAuth 凭据，详见
+              <a href="https://console.cloud.google.com/" target="_blank" class="underline">Google Cloud Console</a>。
+            </div>
+          </div>
           <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-600">
-            <button v-if="!p.enabled" class="btn btn-primary btn-xs" @click="handleEnableProvider(p.id)">连接</button>
+            <button v-if="!store.activeProvider?.enabled" class="btn btn-primary btn-xs" @click="handleEnableProvider('gdrive-default')">连接</button>
             <button v-else class="btn btn-outline btn-error btn-xs" @click="handleDisconnect">断开</button>
           </div>
-        </div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 p-4 shadow-sm mt-3">
-        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2.5">推荐 WebDAV 服务</div>
-        <div class="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
-          <div class="flex items-center gap-2.5"><span class="w-5 h-5 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400 text-[10px] font-bold">推</span>坚果云<code class="text-gray-400 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 rounded ml-auto">dav.jianguoyun.com</code></div>
-          <div class="flex items-center gap-2.5"><span class="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 text-[10px] font-bold">选</span>NextCloud</div>
-          <div class="flex items-center gap-2.5"><span class="w-5 h-5 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 text-[10px] font-bold">选</span>Synology Drive</div>
         </div>
       </div>
     </div>
@@ -155,7 +130,7 @@ const themeOptions = [
   { value: 'system' as const, label: '跟随系统', icon: '🌓', desc: '自动跟随系统主题设置' },
 ]
 
-const features = ['日历月/周/日视图', '四象限矩阵', '滴答清单导入', 'CRDT 数据同步', '本地持久化', 'WebDAV 云同步']
+const features = ['日历月/周/日视图', '四象限矩阵', '滴答清单导入', 'CRDT 数据同步', '本地持久化', 'Google Drive 云同步']
 
 const syncDotClass = computed(() => {
   const s = store.syncState.status
