@@ -2,26 +2,221 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 暗黑模式基础覆盖 */
+/* ============ 自定义 CSS 变量 ============ */
+:root {
+  --sidebar-width: 220px;
+  --header-height: 52px;
+  --color-accent: #e88c31;
+  --color-accent-light: #f5f3ef;
+  --color-accent-mid: #f0ede8;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 明亮模式 */
+:root,
+[data-theme='light'] {
+  --bg-app: #f5f5f5;
+  --bg-sidebar: #fafafa;
+  --bg-card: #ffffff;
+  --bg-hover: #f0f0f0;
+  --bg-active: #e8e8e8;
+  --text-primary: #202020;
+  --text-secondary: #888888;
+  --text-tertiary: #bfbfbf;
+  --border-color: #eaeaea;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+/* 暗黑模式 */
+[data-theme='dark'],
 .dark {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-card: #1e1e3a;
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --border-color: #27272a;
+  --bg-app: #1a1a1a;
+  --bg-sidebar: #202020;
+  --bg-card: #282828;
+  --bg-hover: #333333;
+  --bg-active: #3a3a3a;
+  --text-primary: #e8e8e8;
+  --text-secondary: #999999;
+  --text-tertiary: #666666;
+  --border-color: #333333;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+  --color-accent-light: #2a2825;
+  --color-accent-mid: #2a2a28;
 }
 
-.dark body {
-  background-color: #0f0f23;
-  color: #e4e4e7;
-}
-
-/* 过渡动画 */
+/* ============ 基础样式 ============ */
 html {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
-html, body, * {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ============ 过渡动画 ============ */
+/* 页面切换 */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 列表项动画 */
+.list-enter-active,
+.list-leave-active {
+  transition: all 250ms ease;
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-16px);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(16px);
+}
+.list-move {
+  transition: transform 250ms ease;
+}
+
+/* 淡入淡出 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 150ms ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ============ 组件样式 ============ */
+/* 选中指示器动画 */
+.sidebar-indicator {
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 输入框焦点 */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--text-secondary) !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 自定义复选框 */
+.checkbox-tick {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+  position: relative;
+  border: 2px solid var(--text-tertiary);
+  background-color: transparent;
+}
+.checkbox-tick:checked {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+}
+.checkbox-tick:checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.checkbox-tick:hover {
+  border-color: var(--color-accent);
+}
+
+/* 暗黑模式下复选框适配 */
+.dark .checkbox-tick {
+  border-color: #555555;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.dark .checkbox-tick:checked {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+}
+.dark .checkbox-tick:hover {
+  border-color: var(--color-accent);
+  background-color: rgba(232, 140, 49, 0.1);
+}
+.dark .checkbox-tick:checked:hover {
+  background-color: var(--color-accent);
+}
+
+/* 优先级圆点 */
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.priority-dot.high { background-color: #e74c3c; }
+.priority-dot.medium { background-color: #e88c31; }
+.priority-dot.low { background-color: #3498db; }
+.priority-dot.none { background-color: var(--text-tertiary); }
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+/* 图标按钮悬停 */
+.icon-btn {
+  transition: all 150ms ease;
+}
+.icon-btn:hover {
+  background-color: var(--bg-hover) !important;
 }

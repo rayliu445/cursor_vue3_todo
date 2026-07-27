@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { createDataAccess, getDataAccess } from '../services/data-access'
+import { getDataAccess } from '../services/data-access'
 import type { CRDTTodo } from '../services/crdt-doc'
 import { getSyncEngine } from '../services/sync-engine'
 
@@ -13,12 +13,20 @@ export const useTodoStore = defineStore('todo', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // 数据访问层实例
-  let dataAccess = getDataAccess()
+  // 延迟获取数据访问层实例（可能在初始化之前被调用）
+  function getOrInitDataAccess() {
+    try {
+      return getDataAccess()
+    } catch {
+      return null
+    }
+  }
 
   // 从数据层刷新 todos
   function refreshTodos() {
-    todos.value = dataAccess.getTodos() as Todo[]
+    const da = getOrInitDataAccess()
+    if (!da) return
+    todos.value = da.getTodos() as Todo[]
   }
 
   // 获取所有待办事项
@@ -36,13 +44,21 @@ export const useTodoStore = defineStore('todo', () => {
     }
   }
 
+  // 获取数据访问层（安全）
+  function getDA() {
+    const da = getOrInitDataAccess()
+    if (!da) throw new Error('DataAccess not initialized yet')
+    return da
+  }
+
   // 添加待办事项（支持完整字段）
   async function addTodo(data: { title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean }) {
     loading.value = true
     error.value = null
     
     try {
-      const newTodo = dataAccess.addTodo({
+      const da = getDA()
+      const newTodo = da.addTodo({
         title: data.title,
         completed: data.completed ?? false,
         priority: data.priority ?? 0,
@@ -76,7 +92,8 @@ export const useTodoStore = defineStore('todo', () => {
     error.value = null
     
     try {
-      dataAccess.updateTodo(id, updates)
+      const da = getDA()
+      da.updateTodo(id, updates)
       refreshTodos()
       getSyncEngine().scheduleWrite()
     } catch (err) {
@@ -89,11 +106,16 @@ export const useTodoStore = defineStore('todo', () => {
 
   // 切换待办事项完成状态
   async function toggleTodo(id: string) {
-    const todo = todos.value.find((t) => t.id === id)
-    if (todo) {
-      dataAccess.toggleTodo(id)
-      refreshTodos()
-      getSyncEngine().scheduleWrite()
+    try {
+      const todo = todos.value.find((t) => t.id === id)
+      if (todo) {
+        const da = getDA()
+        da.toggleTodo(id)
+        refreshTodos()
+        getSyncEngine().scheduleWrite()
+      }
+    } catch (err) {
+      console.error('切换待办事项失败:', err)
     }
   }
 
@@ -103,7 +125,8 @@ export const useTodoStore = defineStore('todo', () => {
     error.value = null
     
     try {
-      dataAccess.removeTodo(id)
+      const da = getDA()
+      da.removeTodo(id)
       refreshTodos()
       getSyncEngine().scheduleWrite()
       
@@ -133,8 +156,9 @@ export const useTodoStore = defineStore('todo', () => {
     let successCount = 0
 
     try {
+      const da = getDA()
       for (const item of items) {
-        dataAccess.addTodo({
+        da.addTodo({
           title: item.title,
           completed: item.completed ?? false,
           priority: item.priority ?? 0,

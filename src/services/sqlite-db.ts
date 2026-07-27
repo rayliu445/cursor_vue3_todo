@@ -80,15 +80,19 @@ export class TodoDatabase {
 
   /** 初始化：加载 WASM + 创建 Schema */
   async initialize(existingData?: Uint8Array): Promise<void> {
-    // 使用 self.location 获取页面 URL，然后定位到 asar 根目录的 node_modules
-    // 页面 URL: file:///.../app.asar/dist/index.html
-    // WASM 位置: /node_modules/sql.js/dist/{file}
+    // 根据运行环境定位 sql.js WASM 文件
     const locateFile = (file: string) => {
-      const pageUrl = self.location.href
-      // 移除 dist/index.html 部分，得到 asar 根目录
-      const asarRoot = pageUrl.substring(0, pageUrl.lastIndexOf('/', pageUrl.length - 1))
+      const url = self.location.href
+      // 开发模式 (Vite dev server：http://localhost:3000)
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        // Vite 开发模式下，WASM 需要通过 public 目录或 node_modules 直接访问
+        // 但 sql.js 被 exclude 在 optimizeDeps 外，所以直接引用原始路径
+        return `/node_modules/sql.js/dist/${file}`
+      }
+      // 生产模式 (Electron asar：file:///.../app.asar/dist/index.html)
+      const asarRoot = url.substring(0, url.lastIndexOf('/', url.length - 1))
       const distIdx = asarRoot.lastIndexOf('/dist')
-      const baseDir = distIdx >= 0 ? pageUrl.substring(0, distIdx) : asarRoot
+      const baseDir = distIdx >= 0 ? url.substring(0, distIdx) : asarRoot
       return baseDir + '/node_modules/sql.js/dist/' + file
     }
     const SQL = await initSqlJs({

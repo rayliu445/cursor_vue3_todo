@@ -78,7 +78,7 @@ export class OSSProvider implements CloudProvider {
     this.config = {
       ...config,
       region: config.region || DEFAULT_REGION,
-      basePath: config.basePath || 'TodoApp',
+      basePath: config.basePath || 'TinyDo',
     }
   }
 

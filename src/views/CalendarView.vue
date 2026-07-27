@@ -1,35 +1,56 @@
 <template>
-  <div class="py-6">
-    <!-- 日历顶部工具栏 -->
-    <div class="flex items-center justify-between mb-6">
+  <div class="flex flex-col h-full overflow-hidden" :style="{ backgroundColor: 'var(--bg-app)' }">
+    <!-- 页面头部 -->
+    <div
+      class="flex items-center justify-between px-6 h-14 border-b flex-shrink-0"
+      :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
+    >
       <div class="flex items-center gap-2">
-        <button class="btn btn-ghost btn-sm" @click="goToday">今天</button>
-        <button class="btn btn-ghost btn-sm" @click="prevPeriod">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <button class="btn btn-ghost btn-sm" @click="nextPeriod">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-        </button>
-        <h2 class="text-xl font-bold ml-2">{{ headerTitle }}</h2>
-      </div>
-      <div class="join">
         <button
-          class="join-item btn btn-sm"
-          :class="{ 'btn-active': viewMode === 'month' }"
+          class="px-3 py-1.5 text-sm rounded-lg transition-all duration-150"
+          :style="{
+            backgroundColor: 'var(--bg-hover)',
+            color: 'var(--text-primary)',
+          }"
+          @click="goToday"
+        >今天</button>
+        <button
+          class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
+          :style="{ color: 'var(--text-secondary)' }"
+          @click="prevPeriod"
+        >
+          <AppIcon name="chevronLeft" :size="16" />
+        </button>
+        <button
+          class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
+          :style="{ color: 'var(--text-secondary)' }"
+          @click="nextPeriod"
+        >
+          <AppIcon name="chevronRight" :size="16" />
+        </button>
+        <h2 class="text-lg font-semibold ml-2" :style="{ color: 'var(--text-primary)' }">{{ headerTitle }}</h2>
+      </div>
+      <div class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+        <button
+          class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150"
+          :style="getViewBtnStyle('month')"
           @click="viewMode = 'month'"
         >月</button>
         <button
-          class="join-item btn btn-sm"
-          :class="{ 'btn-active': viewMode === 'week' }"
+          class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150"
+          :style="getViewBtnStyle('week')"
           @click="viewMode = 'week'"
         >周</button>
         <button
-          class="join-item btn btn-sm"
-          :class="{ 'btn-active': viewMode === 'day' }"
+          class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150"
+          :style="getViewBtnStyle('day')"
           @click="viewMode = 'day'"
         >日</button>
       </div>
     </div>
+
+    <!-- 日历内容区域 -->
+    <div class="flex-1 overflow-y-auto p-4">
 
     <!-- 视图切换 -->
     <CalendarMonth
@@ -57,46 +78,87 @@
     />
 
     <!-- 快速添加任务弹窗 -->
-    <dialog ref="addDialog" class="modal">
-      <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">添加任务</h3>
-        <div class="flex flex-col gap-3">
-          <input
-            v-model="quickAddTitle"
-            type="text"
-            placeholder="任务标题"
-            class="input input-bordered w-full"
-            @keyup.enter="confirmQuickAdd"
-          />
-          <div class="flex gap-2">
-            <select v-model="quickAddPriority" class="select select-bordered select-sm flex-1">
-              <option :value="0">优先级：无</option>
-              <option :value="1">优先级：低</option>
-              <option :value="3">优先级：中</option>
-              <option :value="5">优先级：高</option>
-            </select>
+    <transition name="scale">
+      <div
+        v-if="showAddDialog"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        :style="{ backgroundColor: 'rgba(0,0,0,0.4)' }"
+        @click.self="closeAddDialog"
+      >
+        <div
+          class="w-full max-w-sm rounded-xl shadow-lg p-6"
+          :style="{ backgroundColor: 'var(--bg-card)' }"
+        >
+          <h3 class="text-base font-semibold mb-4" :style="{ color: 'var(--text-primary)' }">添加任务</h3>
+          <div class="space-y-3">
+            <input
+              v-model="quickAddTitle"
+              type="text"
+              placeholder="任务标题"
+              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
+              :style="{
+                backgroundColor: 'var(--bg-app)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+              }"
+              @keyup.enter="confirmQuickAdd"
+            />
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">优先级</label>
+              <div class="flex gap-2">
+                <button
+                  v-for="p in priorityOptions"
+                  :key="p.value"
+                  class="flex-1 py-1.5 text-sm rounded-lg transition-all duration-150 font-medium"
+                  :style="getPriorityBtnStyle(p.value, quickAddPriority === p.value)"
+                  @click="quickAddPriority = p.value"
+                >
+                  {{ p.label }}
+                </button>
+              </div>
+            </div>
+            <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+              日期：{{ quickAddDateStr }}
+            </p>
           </div>
-          <p class="text-sm text-base-content/60">日期：{{ quickAddDateStr }}</p>
-        </div>
-        <div class="modal-action">
-          <button class="btn btn-sm" @click="closeAddDialog">取消</button>
-          <button class="btn btn-sm btn-primary" @click="confirmQuickAdd">添加</button>
+          <div class="flex justify-end gap-2 mt-6">
+            <button
+              class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
+              :style="{
+                backgroundColor: 'var(--bg-hover)',
+                color: 'var(--text-secondary)',
+              }"
+              @click="closeAddDialog"
+            >
+              取消
+            </button>
+            <button
+              class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
+              :style="{
+                backgroundColor: 'var(--bg-hover)',
+                color: 'var(--text-primary)',
+                fontWeight: 500,
+              }"
+              @click="confirmQuickAdd"
+            >
+              添加
+            </button>
+          </div>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop">
-        <button>关闭</button>
-      </form>
-    </dialog>
+    </transition>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useTodoStore, type Todo } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import CalendarMonth from '../components/calendar/CalendarMonth.vue'
 import CalendarWeek from '../components/calendar/CalendarWeek.vue'
 import CalendarDay from '../components/calendar/CalendarDay.vue'
+import AppIcon from '../components/icons/AppIcon.vue'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
@@ -107,14 +169,39 @@ const currentDate = ref(new Date())
 const viewMode = ref<'month' | 'week' | 'day'>('month')
 
 // 快速添加任务
-const addDialog = ref<HTMLDialogElement | null>(null)
+const showAddDialog = ref(false)
 const quickAddTitle = ref('')
 const quickAddDate = ref('')
-const quickAddPriority = ref<0 | 1 | 3 | 5>(0)
+const quickAddPriority = ref<0 | 1 | 3 | 5>(3) // 默认中
 const quickAddDateStr = computed(() => {
   if (!quickAddDate.value) return ''
   return quickAddDate.value
 })
+
+const priorityOptions = [
+  { value: 0, label: '无' },
+  { value: 1, label: '低' },
+  { value: 3, label: '中' },
+  { value: 5, label: '高' },
+]
+
+function getPriorityBtnStyle(value: number, isSelected: boolean) {
+  return {
+    backgroundColor: isSelected ? 'var(--color-accent-light)' : 'var(--bg-hover)',
+    color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+    fontWeight: isSelected ? '600' : '400',
+    border: isSelected ? '1px solid var(--border-color)' : '1px solid transparent',
+  }
+}
+
+function getViewBtnStyle(mode: string) {
+  const isActive = viewMode.value === mode
+  return {
+    backgroundColor: isActive ? 'var(--bg-card)' : 'transparent',
+    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+    boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+  }
+}
 
 // 标题
 const headerTitle = computed(() => {
@@ -185,12 +272,12 @@ function goToday() {
 function selectDate(dateStr: string) {
   quickAddDate.value = dateStr
   quickAddTitle.value = ''
-  quickAddPriority.value = 0
-  addDialog.value?.showModal()
+  quickAddPriority.value = 3
+  showAddDialog.value = true
 }
 
 function closeAddDialog() {
-  addDialog.value?.close()
+  showAddDialog.value = false
 }
 
 async function confirmQuickAdd() {

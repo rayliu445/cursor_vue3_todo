@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Todo App - macOS 安装脚本
+# TinyDo - macOS 安装脚本
 # 用法: curl -fsSL https://<你的域名>/install.sh | bash
 # 或:   bash scripts/install-mac.sh [版本号]
 # ============================================
@@ -8,9 +8,9 @@ set -e
 
 VERSION="${1:-v0.0.1}"
 BASE_URL="https://github.com/<你的用户名>/<仓库名>/releases/download/$VERSION"
-APP_NAME="Todo App"
+APP_NAME="TinyDo"
 
-echo "📦 正在下载 Todo App $VERSION ..."
+echo "📦 正在下载 TinyDo $VERSION ..."
 
 # 检测架构
 ARCH="arm64"

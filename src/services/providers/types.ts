@@ -84,7 +84,7 @@ export const DEFAULT_SYNC_CONFIG: SyncConfig = {
   enabled: false,
   autoSync: true,
   syncIntervalMs: 30000, // 30秒
-  cloudPath: 'TodoApp/data.automerge',
+  cloudPath: 'TinyDo/data.automerge',
   lastSyncTime: null,
   lastSyncHash: null,
 }

@@ -1,8 +1,8 @@
-Todo App - 跨平台任务管理工具
+TinyDo - 跨平台任务管理工具
 ================================
 
 版本：0.0.1
-官网：https://github.com/rayliu445/cursor_vue3_todo
+官网：https://github.com/rayliu445/tinydo
 
 == 首次使用 ==
 
@@ -14,7 +14,7 @@ macOS 打开时提示"已损坏，无法打开"？
   3. 脚本会自动安装并启动应用
 
 或者手动执行：
-  sudo xattr -cr "/Applications/Todo App.app"
+  sudo xattr -cr "/Applications/TinyDo.app"
 
 == 数据同步 ==
 

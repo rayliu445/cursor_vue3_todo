@@ -2,18 +2,18 @@
 
 ## 概述
 
-Todo App 支持通过 Google Drive API v3 进行云同步。本文档说明如何配置 Google Cloud 项目并获取所需的凭据。
+TinyDo 支持通过 Google Drive API v3 进行云同步。本文档说明如何配置 Google Cloud 项目并获取所需的凭据。
 
 ## 前置条件
 
 - Google 账号（个人 Gmail 即可）
-- Todo App 桌面端 (Electron)
+- TinyDo 桌面端 (Electron)
 
 ## 第一步：创建 Google Cloud 项目
 
 1. 打开 [Google Cloud Console](https://console.cloud.google.com/)
 2. 点击顶部的项目下拉菜单 → **新建项目**
-3. 输入项目名称（如 `Todo App Sync`）
+3. 输入项目名称（如 `TinyDo Sync`）
 4. 点击 **创建**
 
 ## 第二步：启用 Google Drive API
@@ -27,7 +27,7 @@ Todo App 支持通过 Google Drive API v3 进行云同步。本文档说明如�
 1. 进入 **API 和服务** → **OAuth 同意屏幕**
 2. 选择 **外部** 用户类型 → **创建**
 3. 填写必填信息：
-   - 应用名称：`Todo App`
+   - 应用名称：`TinyDo`
    - 用户支持邮箱：你的邮箱
    - 开发者联系信息：你的邮箱
 4. 点击 **保存并继续**
@@ -44,13 +44,13 @@ Todo App 支持通过 Google Drive API v3 进行云同步。本文档说明如�
 1. 进入 **API 和服务** → **凭据**
 2. 点击 **+ 创建凭据** → **OAuth 客户端 ID**
 3. 应用类型选择 **桌面应用**
-4. 名称：`Todo App Desktop Client`
+4. 名称：`TinyDo Desktop Client`
 5. 点击 **创建**
 6. 在弹出的窗口中，复制 **客户端 ID**（Client ID）
 
-## 第五步：在 Todo App 中配置
+## 第五步：在 TinyDo 中配置
 
-1. 打开 Todo App → **设置** → **同步**
+1. 打开 TinyDo → **设置** → **同步**
 2. 找到 **Google Drive** 卡片，展开
 3. 填入上一步复制的 **客户端 ID**
 4. 点击 **连接**
@@ -87,7 +87,7 @@ Token 安全存储在本地
 
 ```
 Google Drive 中的应用数据文件夹:
-  TodoApp/data.automerge    ← CRDT 同步文件
+  TinyDo/data.automerge    ← CRDT 同步文件
 ```
 
 ## 故障排除

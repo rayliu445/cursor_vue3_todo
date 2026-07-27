@@ -2,7 +2,7 @@
 
 ## 概述
 
-同步引擎是整个多端架构的核心组件，负责在用户自选的云存储与本地 CRDT 文档之间同步数据。
+同步引擎负责在用户自选的云存储与本地 SQLite 数据库之间同步数据。
 
 ## 核心模型
 
@@ -32,8 +32,8 @@
 
 ```
 用户操作 → Pinia Store → DataAccess.updateTodo()
-  → CRDT Doc.change(doc => { doc.todos[id].completed = true })
-  → Storage.save(localCache)          // 立即写本地缓存
+  → SQLite 写入 + db.export()         // 更新数据库并导出二进制快照
+  → Storage.save(localCache)          // 立即写本地缓存 (IndexedDB)
   → SyncEngine.scheduleWrite()        // 异步调度写入云
     → debounce(500ms)                 // 防抖
     → CloudProvider.write(file)       // 写入云存储
@@ -45,7 +45,7 @@
 App 启动 → SyncEngine.initialize()
   → CloudProvider.read()              // 读取云文件
   → if (存在 && 有变更):
-      → CRDT Doc.merge(cloudDoc)      // 合并到本地文档
+      → 用云文件覆盖本地 SQLite 数据库  // 全量替换
   → Storage.save(localCache)          // 更新本地缓存
   → Pinia Store 更新                   // UI 响应更新
 ```
@@ -57,27 +57,19 @@ CloudProvider.watch()                 // 监听文件变化
   → onFileChange:
     → debounce(1000ms)                // 防抖（云盘同步有延迟）
     → CloudProvider.read()
-    → CRDT Doc.merge(cloudDoc)
+    → 替换本地 SQLite 数据库
     → Storage.save(localCache)
     → Pinia Store 更新
 ```
 
-## 冲突解决策略
+## 同步策略
 
-### CRDT 自动合并（主要策略）
-Automerge 使用操作日志和向量时钟：
-- 每个修改操作有唯一的因果时间戳
-- 所有设备的操作最终合并为一致的文档状态
-- 对于同时修改同一字段：按因果序决定最终值（LWW - Last Writer Wins）
+由于 SQLite 整体导出/替换的同步方式，采用全量文件替换策略：
 
-### 边界情况处理
-
-| 场景 | 处理方式 |
-|------|---------|
-| 双设备同时修改同一任务标题 | CRDT 自动合并，保留最后一次写入 |
-| 设备 A 删除任务，设备 B 同时修改该任务 | 删除优先（tombstone 机制） |
-| 设备离线修改，一周后才上线 | CRDT 操作日志保证所有变更被正确合并 |
-| 云文件损坏 | 回退到本地缓存，提示用户 |
+- 每次同步上传完整的 SQLite 数据库快照（Uint8Array）
+- 从云存储读取时直接替换本地数据库
+- 冲突解决：后写入者覆盖（Last Write Wins）
+- 适用于单用户多设备场景，数据量小，冲突概率低
 | 云文件被手动删除 | 使用本地缓存重新创建云文件 |
 
 ## 存储策略
@@ -93,7 +85,7 @@ Web (dev) | IndexedDB (via localForage)
 
 ### 云文件
 ```
-路径: {cloudRoot}/TodoApp/data.automerge
+路径: {cloudRoot}/TinyDo/data.automerge
 
 文件格式: Automerge 序列化二进制格式 (.automerge)
 备用格式: JSON 导出 (用户可读可备份)

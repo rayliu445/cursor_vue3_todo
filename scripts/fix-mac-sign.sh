@@ -59,7 +59,7 @@ cd "$BUILD_DIR"
 APP_NAME=$(basename "$APP_PATH")
 VERSION=$(node -e "console.log(require('$PROJECT_DIR/package.json').version)")
 DMG_NAME="Todo-App-v$VERSION-mac-arm64.dmg"
-hdiutil create -size 500m -fs APFS -volname "Todo App" \
+hdiutil create -size 500m -fs APFS -volname "TinyDo" \
   -srcfolder "$APP_NAME" -format UDZO -ov "$DMG_NAME" 2>&1 | tail -1
 echo "   ✅ DMG 创建完成: $DMG_NAME"
 

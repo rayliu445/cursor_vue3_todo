@@ -1,41 +1,43 @@
-# 实施路线图：多端同步 Todo 应用
+# 实施路线图
 
 ## 总览
 
-将现有基于 json-server + Electron IPC 的本地应用，改造为 **CRDT 本地优先 + 用户自管云存储** 的多端同步应用。
+将现有 Todo 应用持续迭代，对标滴答清单的功能和体验。
 
 ---
 
-## 阶段一：引入 CRDT 数据层 🔴 (当前)
+## 已完成 ✅
 
-**目标**：替换 json-server / Electron fs 读写，建立基于 Automerge 的统一数据层。
+| 阶段 | 内容 |
+|------|------|
+| 数据存储 | SQLite (sql.js) + IndexedDB 持久化，替代初始的 json-server |
+| UI 布局 | 左侧边栏导航 + 右侧主内容区，对标滴答清单布局 |
+| 图标系统 | 自定义卡通风格 SVG 图标，统一替换 emoji |
+| 主题系统 | 亮色/暗黑/跟随系统，CSS 变量驱动 |
+| 日历视图 | 月/周/日三种视图，快速添加任务 |
+| 四象限矩阵 | 艾森豪威尔矩阵，支持拖拽分类 |
+| 设置页面 | 存储/同步/主题/关于 四个标签页 |
+| 云同步 | 七牛云 Kodo 对象存储（可选配置） |
+| 数据导入 | 支持 CSV / JSON 格式导入滴答清单数据 |
 
-### 步骤
+## 进行中 🟡
 
-| # | 任务 | 文件 | 说明 |
-|---|------|------|------|
-| 1.1 | 安装 Automerge 依赖 | `package.json` | `npm install @automerge/automerge @automerge/automerge-repo` |
-| 1.2 | 创建 CRDT 文档服务 | `src/services/crdt-doc.ts` | 封装 Automerge 文档的创建、修改、查询、合并 |
-| 1.3 | 创建存储层 | `src/services/storage.ts` | 封装本地持久化（IndexedDB for Web, fs for Electron） |
-| 1.4 | 创建数据访问层 | `src/services/data-access.ts` | 统一的 CRUD 接口，内部调用 CRDT + Storage |
-| 1.5 | 重构 Pinia Store | `src/stores/todo.ts` | 将 HTTP/IPC 调用替换为 Data Access Layer |
-| 1.6 | 数据迁移脚本 | `src/services/migration.ts` | 将现有 `db.json` 数据一次性导入 CRDT 文档 |
-| 1.7 | 更新 Electron IPC | `electron/main.js` | IPC handlers 改为操作 CRDT 文档 |
-| 1.8 | 更新 Preload | `electron/preload.js` | 暴露新的 CRDT API |
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| 高 | 任务列表批量操作 | 多选、批量移动、批量删除 |
+| 中 | 任务提醒通知 | 基于截止日期的本地通知 |
+| 低 | 数据统计报表 | 完成率、趋势图等 |
 
-### 验证标准
-- [ ] 应用正常启动，已有数据可读
-- [ ] 增删改查操作正常工作
-- [ ] 关闭再打开应用，数据持久化
-- [ ] Electron 和 dev 模式均正常
+## 规划中 🟢
 
----
-
-## 阶段二：云存储同步引擎 🟡
-
-**目标**：实现 CRDT 文档的云存储读写，完成多设备基础同步。
-
-### 步骤
+| 功能 | 说明 |
+|------|------|
+| 标签系统 | 任务多维度分类、标签筛选 |
+| 清单/文件夹 | 任务分组管理 |
+| 拖拽排序 | 任务列表内拖拽调整顺序 |
+| 搜索增强 | 全文搜索、高级筛选 |
+| 更多云存储 | WebDAV、阿里云 OSS 支持 |
+| 多语言 | 国际化支持 |
 
 | # | 任务 | 文件 | 说明 |
 |---|------|------|------|

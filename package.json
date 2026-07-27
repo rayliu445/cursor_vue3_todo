@@ -1,6 +1,6 @@
 {
-  "name": "todo-app",
-  "version": "0.0.1",
+  "name": "tinydo",
+  "version": "0.0.3",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/postbuild.js",
@@ -54,8 +54,8 @@
     "vite": "^2.8.4"
   },
   "build": {
-    "appId": "com.todoapp.app",
-    "productName": "Todo App",
+    "appId": "com.tinydo.app",
+    "productName": "TinyDo",
     "directories": {
       "output": "dist-electron"
     },
@@ -69,7 +69,7 @@
         }
       ],
       "category": "public.app-category.productivity",
-      "artifactName": "Todo-App-${version}-mac",
+      "artifactName": "TinyDo-${version}-mac",
       "identity": null
     },
     "win": {
@@ -81,7 +81,7 @@
           ]
         }
       ],
-      "artifactName": "Todo-App-${version}-win.exe"
+      "artifactName": "TinyDo-${version}-win.exe"
     },
     "files": [
       "dist/**/*",
@@ -110,5 +110,5 @@
     "afterSign": null
   },
   "description": "对标滴答清单的个人任务管理工具",
-  "author": "Todo App Team"
+  "author": "TinyDo Team"
 }

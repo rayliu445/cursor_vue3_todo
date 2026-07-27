@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Todo App - 全平台构建脚本
+# TinyDo - 全平台构建脚本
 # 自动检测当前系统可构建的平台
 # ============================================
 set -e
@@ -11,7 +11,7 @@ VERSION=$(node -e "console.log(require('$PROJECT_DIR/package.json').version)")
 RELEASE_DIR="$PROJECT_DIR/release/v$VERSION"
 BUILD_DIR="$PROJECT_DIR/dist-electron"
 
-echo "==================== Todo App Build v$VERSION ===================="
+echo "==================== TinyDo Build v$VERSION ===================="
 echo ""
 
 # 1. 编译前端
@@ -35,7 +35,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   fi
   # 手动创建 DMG（electron-builder 的 hdiutil 在 arm64 上有兼容问题）
   DMG_NAME="Todo-App-v$VERSION-mac-arm64.dmg"
-  hdiutil create -size 500m -fs APFS -volname "Todo App" -srcfolder "$APP_DIR" -format UDZO -ov "$BUILD_DIR/$DMG_NAME" 2>&1 | tail -1
+  hdiutil create -size 500m -fs APFS -volname "TinyDo" -srcfolder "$APP_DIR" -format UDZO -ov "$BUILD_DIR/$DMG_NAME" 2>&1 | tail -1
   mkdir -p "$RELEASE_DIR"
   cp "$BUILD_DIR/$DMG_NAME" "$RELEASE_DIR/" 2>/dev/null || true
   echo "  ✅ macOS .dmg built: $DMG_NAME"

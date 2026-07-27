@@ -32,7 +32,7 @@ export class WebDAVProvider implements CloudProvider {
   constructor(config: WebDAVConfig) {
     this.config = {
       ...config,
-      basePath: config.basePath ?? 'TodoApp',
+      basePath: config.basePath ?? 'TinyDo',
     }
   }
 

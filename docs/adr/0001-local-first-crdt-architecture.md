@@ -1,7 +1,7 @@
 # ADR-0001: 本地优先 + CRDT 多端同步架构
 
 ## 状态
-**已接受**
+**已弃用**（实际实现改为 SQLite + 全量文件同步，详见实现）
 
 ## 日期
 2026-07-26
@@ -70,7 +70,7 @@ Capacitor 相对 React Native / Flutter 的优势：
 
 ```
 用户云盘/
-  └── TodoApp/
+  └── TinyDo/
       └── data.automerge    # CRDT 文档文件（核心数据）
       └── settings.json     # 用户设置（非同步或选择性同步）
 ```

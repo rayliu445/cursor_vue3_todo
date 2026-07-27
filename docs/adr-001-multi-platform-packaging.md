@@ -8,7 +8,7 @@
 
 ## 背景
 
-Todo App 需要支持三个平台：macOS、iOS、Android。目标是用户数据通过 WebDAV/云盘实现多端同步，而非中心化服务器。
+TinyDo 需要支持三个平台：macOS、iOS、Android。目标是用户数据通过 WebDAV/云盘实现多端同步，而非中心化服务器。
 
 ## 技术方案
 

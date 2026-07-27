@@ -67,8 +67,8 @@ jobs:
           cp docs/qiniu-kodo-guide.md "$dmg_root/" 2>/dev/null || true
 
           # 创建 DMG
-          DMG_NAME="Todo-App-mac-arm64.dmg"
-          hdiutil create -size 600m -fs APFS -volname "Todo App" \
+          DMG_NAME="TinyDo-mac-arm64.dmg"
+          hdiutil create -size 600m -fs APFS -volname "TinyDo" \
             -srcfolder "$dmg_root" -format UDZO -ov "dist-electron/$DMG_NAME"
           echo "✅ DMG created: $DMG_NAME"
 

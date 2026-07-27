@@ -1,14 +1,14 @@
-# Cursor Vue3 Todo - 发布说明
+# TinyDo - 发布说明
 
 ## 版本信息
 
-- 版本号：0.0.0
-- 发布日期：2026 年 1 月 31 日
+- 版本号：0.0.3
+- 发布日期：2026 年 7 月 27 日
 - 平台：macOS (ARM64)
 
 ## 应用简介
 
-Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、TypeScript 和 Electron 构建，包含完整的前后端架构。该应用提供了一个美观且功能完善的界面，帮助用户管理日常任务。
+TinyDo 是一个现代化的待办事项管理应用，基于 Vue 3、TypeScript 和 Electron 构建，包含完整的前后端架构。该应用提供了一个美观且功能完善的界面，帮助用户管理日常任务。
 
 ## 功能特点
 
@@ -21,9 +21,9 @@ Cursor Vue3 Todo 是一个现代化的待办事项管理应用，基于 Vue 3、
 
 ## 安装说明
 
-1. 双击 `Cursor-Vue3-Todo-Proper-Structure.dmg` 文件以挂载安装镜像
-2. 将 "Cursor Vue3 Todo" 图标拖拽至 "Applications" 文件夹
-3. 打开 "Applications" 文件夹，双击 "Cursor Vue3 Todo" 启动应用
+1. 双击 `TinyDo.dmg` 文件以挂载安装镜像
+2. 将 "TinyDo" 图标拖拽至 "Applications" 文件夹
+3. 打开 "Applications" 文件夹，双击 "TinyDo" 启动应用
 
 ## 系统要求
 
@@ -63,7 +63,7 @@ project-root/
 - 可通过外部 `config.json` 文件控制日志行为：
   - `enableLogging`: 是否启用日志 (true/false)
   - `logLevel`: 日志级别 (ERROR, WARN, INFO, DEBUG)
-- 日志文件保存在: `~/Library/Application Support/Cursor Vue3 Todo/logs/app-[YYYY-MM-DD].log`
+- 日志文件保存在: `~/Library/Application Support/TinyDo/logs/app-[YYYY-MM-DD].log`
 
 ## 重新构建说明
 
@@ -101,6 +101,20 @@ project-root/
 - 在某些 macOS 版本上可能需要额外的安全许可
 
 ## 更新日志
+
+- v0.0.3 (2026-07-27): 品牌重命名 + 架构重构
+  - 应用正式更名为 TinyDo
+  - 数据引擎从 CRDT 重构为 SQLite (sql.js) + IndexedDB 持久化
+  - 云同步从 WebDAV 切换为七牛云 Kodo（10GB 免费额度）
+  - 新增日历视图（月视图/周视图/日视图）
+  - 新增四象限视图（重要/紧急矩阵）
+  - 新增搜索功能
+  - 主题系统支持自定义 CSS 变量
+  - SVG 图标组件化重构
+  - 路由从 History 模式改为 Hash 模式
+  - 全新首页界面设计
+  - 设置页面全面升级
+  - 完善文档体系（ADR、术语表、实施路线图）
 
 - v0.0.0 (2026-01-31): 前后端完整版
   - 保留前端后端完整架构

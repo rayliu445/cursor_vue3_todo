@@ -53,7 +53,7 @@
 - 优点: 无需额外依赖，所有平台通用
 
 **第二层: JSON 文件 — 用户可见的持久化文件**
-- Electron 位置: `~/Library/Application Support/Todo App/data/todo-data.json`
+- Electron 位置: `~/Library/Application Support/TinyDo/data/todo-data.json`
 - Web 位置: 通过导出功能下载
 - 格式: 纯 JSON，用户可用任何文本编辑器打开
 - 用途: 备份、迁移、直接编辑
@@ -93,10 +93,10 @@
 
 | 平台 | 数据目录 |
 |------|---------|
-| macOS (Electron) | `~/Library/Application Support/Todo App/data/` |
-| Windows (Electron) | `%APPDATA%/Todo App/data/` |
+| macOS (Electron) | `~/Library/Application Support/TinyDo/data/` |
+| Windows (Electron) | `%APPDATA%/TinyDo/data/` |
 | iOS (Capacitor) | 应用沙盒 Documents/data/ (iCloud 备份) |
-| Android (Capacitor) | 内部存储 `/data/data/com.todoapp.app/files/data/` |
+| Android (Capacitor) | 内部存储 `/data/data/com.tinydo.app/files/data/` |
 | Web (浏览器) | IndexedDB + localStorage，无本地文件 |
 
 ### 用户操作
@@ -106,7 +106,7 @@
                                           ↓
                              放入 iCloud Drive / Dropbox
                                           ↓
-                             另一台设备的 Todo App 导入
+                             另一台设备的 TinyDo 导入
 ```
 
 ## 决定

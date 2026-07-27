@@ -1,25 +1,46 @@
 <template>
-  <div class="py-6">
-    <!-- 顶部标题 + 配置 -->
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">四象限</h1>
-      <button class="btn btn-ghost btn-sm" @click="showConfig = !showConfig">
-        {{ showConfig ? '收起配置' : '规则配置' }}
+  <div class="flex flex-col h-full overflow-hidden" :style="{ backgroundColor: 'var(--bg-app)' }">
+    <!-- 页面头部 -->
+    <div
+      class="flex items-center justify-between px-6 h-14 border-b flex-shrink-0"
+      :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
+    >
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg font-semibold" :style="{ color: 'var(--text-primary)' }">四象限</h1>
+        <span
+          class="text-xs px-2 py-0.5 rounded-full"
+          :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }"
+        >
+          {{ totalActiveTodos }}
+        </span>
+      </div>
+      <button
+        class="px-3 py-1.5 text-sm rounded-lg transition-all duration-150"
+        :style="{
+          backgroundColor: showConfig ? 'var(--color-accent-mid)' : 'var(--bg-hover)',
+          color: showConfig ? 'var(--text-primary)' : 'var(--text-secondary)',
+        }"
+        @click="showConfig = !showConfig"
+      >
+        {{ showConfig ? '收起' : '规则' }}
       </button>
     </div>
 
     <!-- 规则配置面板 -->
-    <div v-if="showConfig" class="mb-6 max-w-md">
-      <MatrixRuleConfig
-        :rule-mode="matrixStore.ruleMode"
-        :urgent-days="matrixStore.urgentDays"
-        @update:rule-mode="matrixStore.setRuleMode"
-        @update:urgent-days="matrixStore.setUrgentDays"
-      />
-    </div>
+    <transition name="slide-down">
+      <div v-if="showConfig" class="flex-shrink-0 px-6 py-4 border-b" :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }">
+        <MatrixRuleConfig
+          :rule-mode="matrixStore.ruleMode"
+          :urgent-days="matrixStore.urgentDays"
+          @update:rule-mode="matrixStore.setRuleMode"
+          @update:urgent-days="matrixStore.setUrgentDays"
+        />
+      </div>
+    </transition>
 
     <!-- 四象限网格 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="flex-1 overflow-y-auto p-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Quadrant
         :quadrant-id="1"
         :label="labels[1]"
@@ -65,10 +86,12 @@
     <!-- 空状态 -->
     <div
       v-if="totalActiveTodos === 0"
-      class="text-center text-base-content/50 py-16"
+      class="flex flex-col items-center justify-center py-16"
+      :style="{ color: 'var(--text-tertiary)' }"
     >
-      <p class="text-lg mb-2">暂无任务</p>
-      <p class="text-sm">在"待办"页面添加任务后，它们将根据优先级自动归类到四个象限</p>
+      <p class="text-base mb-1">暂无任务</p>
+      <p class="text-sm">在收集箱添加任务后自动归类到四个象限</p>
+    </div>
     </div>
   </div>
 </template>

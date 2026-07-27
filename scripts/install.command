@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Todo App - 一键安装脚本
+# TinyDo - 一键安装脚本
 # ============================================
 # 使用方法：双击此文件，选择"打开"即可
 # 需要管理员权限来移除 Gatekeeper 隔离属性
@@ -8,12 +8,12 @@
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="Todo App.app"
+APP_NAME="TinyDo.app"
 APP_PATH="$SCRIPT_DIR/$APP_NAME"
 INSTALL_PATH="/Applications/$APP_NAME"
 
 echo "========================================"
-echo "  Todo App 安装程序"
+echo "  TinyDo 安装程序"
 echo "========================================"
 echo ""
 
@@ -42,7 +42,7 @@ sudo xattr -rd com.apple.quarantine "$INSTALL_PATH" 2>/dev/null
 echo "   ✅ 已解除隔离"
 
 echo ""
-echo "🚀 正在启动 Todo App ..."
+echo "🚀 正在启动 TinyDo ..."
 open "$INSTALL_PATH"
 
 echo ""

@@ -109,7 +109,7 @@ export class GoogleDriveProvider implements CloudProvider {
   private _initialized = false
   private fileIdCache: Map<string, string> = new Map()
 
-  constructor(config: GoogleDriveConfig, basePath: string = 'TodoApp') {
+  constructor(config: GoogleDriveConfig, basePath: string = 'TinyDo') {
     this.config = config
     this.basePath = basePath
   }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Todo App - Gatekeeper 修复脚本
+# TinyDo - Gatekeeper 修复脚本
 # 解决 macOS "已损坏，无法打开" 问题
 # ============================================
 # 使用方法：从 DMG 中双击此文件，点击"打开"
@@ -9,13 +9,13 @@
 
 # 获取此脚本所在目录（DMG 挂载点）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="Todo App.app"
+APP_NAME="TinyDo.app"
 APP_SRC="$SCRIPT_DIR/$APP_NAME"
 APP_DST="/Applications/$APP_NAME"
 
 echo ""
 echo "  ╔═══════════════════════════════════╗"
-echo "  ║       Todo App 安装助手        ║"
+echo "  ║       TinyDo 安装助手        ║"
 echo "  ╚═══════════════════════════════════╝"
 echo ""
 
@@ -51,7 +51,7 @@ xattr -cr "$APP_DST" 2>/dev/null
 echo "   ✅ 隔离已解除"
 
 echo ""
-echo "   🚀 正在启动 Todo App ..."
+echo "   🚀 正在启动 TinyDo ..."
 open "$APP_DST"
 
 echo ""

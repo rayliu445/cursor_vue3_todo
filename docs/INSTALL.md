@@ -1,20 +1,20 @@
-# Todo App 安装指南
+# TinyDo 安装指南
 
 ## macOS
 
 ### 方式一：DMG 安装包（推荐）
 
 1. 从 [Releases 页面](https://github.com/your-repo/releases) 下载 `.dmg` 文件
-2. 双击打开 `.dmg`，将 `Todo App` 拖入 `Applications` 文件夹
+2. 双击打开 `.dmg`，将 `TinyDo` 拖入 `Applications` 文件夹
 3. 首次打开时，如果系统提示"无法验证开发者"，请前往：
    **系统设置 → 隐私与安全性 → 仍要打开**
-4. 之后即可在启动台中找到 Todo App
+4. 之后即可在启动台中找到 TinyDo
 
 ### 方式二：开发模式
 
 ```bash
 git clone <仓库地址>
-cd cursor_vue3_todo
+cd tinydo
 npm install
 npm run dev:all
 # 访问 http://localhost:3000
@@ -35,7 +35,7 @@ AltStore 是目前最方便的 iOS 侧载方案。
 3. 点击菜单栏 AltStore 图标 → **Install AltStore** → 选择您的 iPhone
 4. 输入您的 Apple ID（用于签名，不会泄露）
 
-#### iPhone 端安装 Todo App
+#### iPhone 端安装 TinyDo
 
 5. 在 iPhone 上打开 **AltStore**
 6. 下载我们的 `.ipa` 文件到 iPhone（通过 AirDrop 或文件 App）
@@ -87,7 +87,7 @@ AltStore 会在后台自动为应用续签（7 天有效期）。
 
 ### 方式二：Google Play（即将支持）
 
-搜索 **Todo App** 即可安装。
+搜索 **TinyDo** 即可安装。
 
 ---
 

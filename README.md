@@ -1,5 +1,5 @@
 
-Todo App 是一款对标滴答清单的个人任务管理工具，支持多平台运行和用户自管数据。
+TinyDo 是一款对标滴答清单的个人任务管理工具，支持多平台运行和用户自管数据。
 
 ## 功能
 
@@ -36,7 +36,7 @@ macOS 15+ (Sequoia) 对未签名应用的限制更加严格，无法通过右键
 
 > 如果 `fix-gatekeeper.command` 也被拦截，可以在终端手动执行：
 > ```bash
-> xattr -cr /Applications/Todo\ App.app && open /Applications/Todo\ App.app
+> xattr -cr /Applications/TinyDo.app && open /Applications/TinyDo.app
 > ```
 
 ## 技术栈
@@ -46,24 +46,23 @@ macOS 15+ (Sequoia) 对未签名应用的限制更加严格，无法通过右键
 | 前端框架 | Vue 3 (Composition API + `<script setup>`) |
 | 语言 | TypeScript |
 | 状态管理 | Pinia |
-| 路由 | Vue Router 4 (History 模式) |
-| 样式 | Tailwind CSS 3 + daisyUI 3 |
+| 路由 | Vue Router 4 (Hash 模式) |
+| 样式 | Tailwind CSS 3 + 自定义 CSS 变量主题 |
 | 桌面端 | Electron 30 + electron-builder |
 | 移动端 | Capacitor 8 |
-| 数据引擎 | CRDT (无冲突合并，纯 TS 实现) |
-| 数据存储 | IndexedDB + localStorage (双备份) |
-| 云同步 | WebDAV (坚果云 / NextCloud / Synology) |
+| 数据存储 | SQLite (sql.js) + IndexedDB 持久化 |
+| 云同步 | 七牛云 Kodo (对象存储) |
 | 构建工具 | Vite 2 |
 
 ## 数据架构
 
 ```
-用户数据 → CRDT 文档 → IndexedDB (主) + localStorage (备)
-                      → WebDAV 同步 → 用户云盘
-                      → 完全去中心化，无中心服务器
+用户数据 → SQLite (sql.js) → IndexedDB 持久化
+                           → 七牛云 Kodo 同步（可选）
+                           → 完全本地优先，用户自主管理数据
 ```
 
-用户通过配置自己的 WebDAV 账号（如坚果云）实现多端同步，
+所有数据存储在本地，用户可选配七牛云 Kodo 实现多端云同步，
 无需注册任何第三方服务平台。
 
 ## 快速开始
@@ -90,14 +89,18 @@ npm run mobile:build:android
 ├── src/
 │   ├── views/           # 页面视图
 │   ├── components/      # 组件
+│   │   ├── icons/       # SVG 图标组件
+│   │   ├── calendar/    # 日历视图子组件
+│   │   ├── matrix/      # 四象限子组件
+│   │   └── layouts/     # 布局组件
 │   ├── stores/          # Pinia 状态管理
-│   ├── services/        # 服务层 (CRDT / 存储 / 同步)
+│   ├── services/        # 服务层 (SQLite / 数据访问 / 同步)
 │   └── router/          # 路由配置
 ├── electron/            # Electron 主进程
 ├── dist/                # 编译输出
 ├── docs/                # 文档
 │   ├── INSTALL.md       # 安装指南
-│   └── adr-001-*.md     # 架构决策记录
+│   └── adr-*.md         # 架构决策记录
 └── release/             # 发布说明
 ```
 

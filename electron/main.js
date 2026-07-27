@@ -10,7 +10,7 @@ const configPath = path.join(app.getAppPath(), 'config.json')
 let appConfig = {
   enableLogging: true,
   logLevel: 'INFO',
-  userDataPath: '~/Library/Application Support/Cursor Vue3 Todo',
+  userDataPath: '~/Library/Application Support/TinyDo',
 }
 
 if (fs.existsSync(configPath)) {
