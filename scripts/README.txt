@@ -25,7 +25,7 @@ macOS 打开时提示"已损坏，无法打开"？
   2. 填入阿里云 OSS 的 Bucket 名称和 AccessKey
   3. 点击"连接"即可
 
-详细教程：docs/aliyun-oss-guide.md
+详细教程：docs/qiniu-kodo-guide.md
 
 == 功能特性 ==
 
@@ -33,7 +33,7 @@ macOS 打开时提示"已损坏，无法打开"？
   ✅ 日历月/周/日视图
   ✅ 四象限矩阵
   ✅ 滴答清单数据导入（CSV/JSON）
-  ✅ 阿里云 OSS 云同步
+  ✅ 七牛云 Kodo 云同步
   ✅ 暗黑模式 / 跟随系统
 
 == 技术栈 ==
