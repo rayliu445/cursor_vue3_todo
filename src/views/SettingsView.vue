@@ -42,10 +42,10 @@
       <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 shadow-sm overflow-hidden" :class="{ 'ring-1 ring-blue-500/20 dark:ring-blue-400/30': store.activeProvider?.enabled }">
         <div class="flex items-center justify-between px-4 py-3.5">
           <div class="flex items-center gap-3">
-            <span class="text-lg">&#x1F4C1;</span>
+            <span class="text-lg">&#x2601;&#xFE0F;</span>
             <div>
-              <div class="text-sm font-medium text-gray-800 dark:text-gray-100">Google Drive</div>
-              <div class="text-xs text-gray-400 dark:text-gray-400">15GB 免费空间，不限速</div>
+              <div class="text-sm font-medium text-gray-800 dark:text-gray-100">阿里云 OSS</div>
+              <div class="text-xs text-gray-400 dark:text-gray-400">国内直连，5GB 免费额度</div>
             </div>
           </div>
           <div class="flex items-center gap-2.5">
@@ -56,20 +56,38 @@
         <div class="border-t border-gray-50 dark:border-gray-600 px-4 py-3.5 bg-gray-50/50 dark:bg-gray-700/30">
           <div class="space-y-2.5">
             <div>
-              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">客户端 ID（Client ID）</label>
-              <input v-model="store.settings.providers[0].config.clientId" type="text" placeholder="从 Google Cloud Console 获取" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Bucket 名称</label>
+              <input v-model="store.settings.providers[0].config.bucket" type="text" placeholder="如：todo-app-sync" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
             </div>
-            <div v-if="store.activeProvider?.enabled" class="bg-green-50/50 dark:bg-green-900/20 rounded-lg px-3 py-2.5 text-xs text-green-600 dark:text-green-400">
-              ✅ Google Drive 已连接。同步文件将存储在「TodoApp」文件夹中。
+            <div>
+              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Region（地域）</label>
+              <input v-model="store.settings.providers[0].config.region" type="text" placeholder="oss-cn-hangzhou" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
             </div>
-            <div v-else class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400">
-              连接后将打开浏览器进行 Google 账号授权。需要先创建 OAuth 凭据，详见
-              <a href="https://console.cloud.google.com/" target="_blank" class="underline">Google Cloud Console</a>。
+            <div>
+              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">AccessKey ID</label>
+              <input v-model="store.settings.providers[0].config.accessKeyId" type="text" placeholder="LTAI5t..." class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">AccessKey Secret</label>
+              <input v-model="store.settings.providers[0].config.accessKeySecret" type="password" placeholder="xxxxxxxxxx" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+            </div>
+            <div class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400 mt-2">
+              首次使用？查看
+              <a href="https://github.com/rayliu445/cursor_vue3_todo/blob/main/docs/aliyun-oss-guide.md" target="_blank" class="underline font-medium">阿里云 OSS 配置教程</a>
+              ，3 分钟完成设置。
             </div>
           </div>
-          <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-600">
-            <button v-if="!store.activeProvider?.enabled" class="btn btn-primary btn-xs" @click="handleEnableProvider('gdrive-default')">连接</button>
+          <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-600 flex gap-2">
+            <button v-if="!store.activeProvider?.enabled" class="btn btn-primary btn-xs" @click="handleEnableProvider('oss-default')">连接</button>
             <button v-else class="btn btn-outline btn-error btn-xs" @click="handleDisconnect">断开</button>
+            <button class="btn btn-ghost btn-xs text-gray-500 dark:text-gray-400 ml-auto" :disabled="isTesting" @click="handleTestConnection">
+              <span v-if="isTesting" class="loading loading-spinner loading-xs"></span>
+              <span v-else>&#x1F50C;</span>
+              测试连接
+            </button>
+          </div>
+          <div v-if="testResult !== null" class="mt-2 text-xs" :class="testResult.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
+            {{ testResult.ok ? '✅ ' + testResult.message : '❌ ' + testResult.message }}
           </div>
         </div>
       </div>
@@ -130,7 +148,7 @@ const themeOptions = [
   { value: 'system' as const, label: '跟随系统', icon: '🌓', desc: '自动跟随系统主题设置' },
 ]
 
-const features = ['日历月/周/日视图', '四象限矩阵', '滴答清单导入', 'CRDT 数据同步', '本地持久化', 'Google Drive 云同步']
+const features = ['日历月/周/日视图', '四象限矩阵', '滴答清单导入', 'CRDT 数据同步', '本地持久化', '阿里云 OSS 云同步']
 
 const syncDotClass = computed(() => {
   const s = store.syncState.status
@@ -143,6 +161,15 @@ const syncErrorMessage = computed(() => store.syncState.lastError)
 function handleEnableProvider(id: string) { store.toggleProvider(id) }
 function handleDisconnect() { store.disconnectProvider() }
 async function handleSyncNow() { await store.syncNow() }
+
+const isTesting = ref(false)
+const testResult = ref<{ ok: boolean; message: string } | null>(null)
+async function handleTestConnection() {
+  isTesting.value = true
+  testResult.value = null
+  testResult.value = await store.testOSSConnection()
+  isTesting.value = false
+}
 
 async function exportData() {
   const { getDataAccess } = await import('../services/data-access')
