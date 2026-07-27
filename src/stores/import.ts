@@ -76,10 +76,27 @@ export const useImportStore = defineStore('import', () => {
 
   // 解析 TickTick CSV 格式
   function parseTickTickCSV(csvText: string): any[] {
-    const lines = csvText.split('\n').filter(line => line.trim())
-    if (lines.length < 2) {
-      throw new Error('CSV 文件格式无效：至少需要标题行和一条数据')
+    // 第一步：将 CSV 文本按行解析（处理多行引号字段和元数据头）
+    function splitCSVLines(text: string): string[] {
+      const lines: string[] = []
+      let current = ''
+      let inQuotes = false
+      for (const char of text) {
+        if (char === '"') {
+          inQuotes = !inQuotes
+        }
+        if (char === '\n' && !inQuotes) {
+          lines.push(current)
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      if (current.trim()) lines.push(current)
+      return lines
     }
+
+    const rawLines = splitCSVLines(csvText).filter(line => line.trim())
 
     // 解析 CSV 行（支持引号内逗号）
     function parseCSVLine(line: string): string[] {
@@ -100,11 +117,25 @@ export const useImportStore = defineStore('import', () => {
       return result
     }
 
-    const headers = parseCSVLine(lines[0])
+    // 查找实际的列头行（跳过 TickTick 的元数据头）
+    let headerIdx = -1
+    for (let i = 0; i < rawLines.length; i++) {
+      const parts = parseCSVLine(rawLines[i])
+      if (parts.some(p => /Title|标题|任务标题/i.test(p))) {
+        headerIdx = i
+        break
+      }
+    }
+
+    if (headerIdx === -1) {
+      throw new Error('CSV 文件格式无效：找不到列头行（需要 Title 列）')
+    }
+
+    const headers = parseCSVLine(rawLines[headerIdx])
     const items: any[] = []
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i])
+    for (let i = headerIdx + 1; i < rawLines.length; i++) {
+      const values = parseCSVLine(rawLines[i])
       const item: Record<string, string> = {}
       headers.forEach((h, idx) => {
         item[h.trim()] = values[idx] || ''
@@ -119,7 +150,7 @@ export const useImportStore = defineStore('import', () => {
       priority: parsePriority(item.Priority || item.priority || item['优先级']),
       dueDate: normalizeDate(item['Due Date'] || item.DueDate || item.dueDate || item['截止日期'] || item['到期日'] || ''),
       startDate: normalizeDate(item['Start Date'] || item.StartDate || item.startDate || item['开始日期'] || ''),
-      completed: item.Status === '1' || item.Status === 'completed' || item['状态'] === '已完成' || item.completed === 'true',
+      completed: item.Status === '1' || item.Status === '2' || item.Status === 'completed' || item['状态'] === '已完成' || item.completed === 'true',
       completedTime: normalizeDate(item['Completed Time'] || item.completedTime || item['完成时间'] || ''),
       tags: parseTags(item.Tags || item.tags || item['标签'] || ''),
       list: item.List || item.list || item['清单'] || item['列表'] || '',
