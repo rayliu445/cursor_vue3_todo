@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { getSyncEngine, type SyncEngine } from '../services/sync-engine'
 import type { SyncConfig } from '../services/providers/types'
 import { DEFAULT_SYNC_CONFIG } from '../services/providers/types'
-import { WebDAVProvider, type WebDAVConfig } from '../services/providers/webdav'
 import { GoogleDriveProvider, type GoogleDriveConfig } from '../services/providers/gdrive'
 
 // ============ 类型 ============
@@ -11,7 +10,7 @@ import { GoogleDriveProvider, type GoogleDriveConfig } from '../services/provide
 export interface CloudProviderConfig {
   id: string
   name: string
-  type: 'webdav' | 'gdrive' | 'icloud' | 'local'
+  type: 'gdrive'
   enabled: boolean
   config: Record<string, string>
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -31,37 +30,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   sync: { ...DEFAULT_SYNC_CONFIG },
   providers: [
     {
-      id: 'webdav-default',
-      name: 'WebDAV',
-      type: 'webdav',
-      enabled: false,
-      config: {
-        url: '',
-        username: '',
-        password: '',
-        basePath: 'TodoApp',
-      },
-      status: 'disconnected',
-    },
-    {
       id: 'gdrive-default',
       name: 'Google Drive',
       type: 'gdrive',
       enabled: false,
       config: {
         clientId: '',
-        apiKey: '',
-        folderId: '',
-      },
-      status: 'disconnected',
-    },
-    {
-      id: 'local-default',
-      name: '本地文件系统',
-      type: 'local',
-      enabled: false,
-      config: {
-        syncPath: '~/TodoApp',
       },
       status: 'disconnected',
     },
@@ -139,32 +113,7 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings(settings.value)
 
     try {
-      if (provider.type === 'webdav') {
-        const webdavConfig: WebDAVConfig = {
-          url: provider.config.url,
-          username: provider.config.username,
-          password: provider.config.password,
-          basePath: provider.config.basePath,
-        }
-        const webdavProvider = new WebDAVProvider(webdavConfig)
-        await webdavProvider.initialize()
-        await syncEngine.setProvider(webdavProvider)
-        provider.status = 'connected'
-      } else if (provider.type === 'local') {
-        // 本地文件系统 - 仅 Electron 环境可用
-        try {
-          const { LocalFileSystemProvider } = await import('../services/providers/local-fs')
-          const localProvider = new LocalFileSystemProvider(
-            provider.config.syncPath || './todo-data',
-          )
-          await localProvider.initialize()
-          await syncEngine.setProvider(localProvider)
-          provider.status = 'connected'
-        } catch {
-          provider.status = 'error'
-          provider.lastError = '本地文件系统仅支持 Electron 桌面端'
-        }
-      } else if (provider.type === 'gdrive') {
+      if (provider.type === 'gdrive') {
         // Google Drive - OAuth 2.0 with PKCE
         try {
           if (!provider.config.clientId) {
