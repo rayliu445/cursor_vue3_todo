@@ -201,9 +201,11 @@ function createWindow() {
     })
   })
 
-  // 打开开发者工具以便调试（只在有显示环境时打开）
-  mainWindow.webContents.openDevTools({ mode: 'detach' })
-  info('DevTools opened')
+  // 仅在非打包环境（本地开发/测试）时打开 DevTools
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+    info('DevTools opened for local testing')
+  }
 
   // 延迟检查页面 DOM 内容
   setTimeout(() => {

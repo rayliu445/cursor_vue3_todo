@@ -179,9 +179,11 @@ function createWindow() {
     info('DOM is ready')
   })
 
-  // 打开开发者工具以便调试
-  mainWindow.webContents.openDevTools({ mode: 'detach' })
-  info('DevTools opened')
+  // 仅在非打包环境（本地开发/测试）时打开 DevTools
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+    info('DevTools opened for local testing')
+  }
 
   mainWindow.on('closed', () => {
     info('Window closed')
