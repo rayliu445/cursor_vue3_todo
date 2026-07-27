@@ -3,14 +3,14 @@ import { ref, computed } from 'vue'
 import { getSyncEngine, type SyncEngine } from '../services/sync-engine'
 import type { SyncConfig } from '../services/providers/types'
 import { DEFAULT_SYNC_CONFIG } from '../services/providers/types'
-import { OSSProvider, type OSSConfig } from '../services/providers/oss'
+import { KodoProvider, type KodoConfig } from '../services/providers/kodo'
 
 // ============ 类型 ============
 
 export interface CloudProviderConfig {
   id: string
   name: string
-  type: 'gdrive'
+  type: 'kodo'
   enabled: boolean
   config: Record<string, string>
   status: 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -30,13 +30,13 @@ const DEFAULT_SETTINGS: AppSettings = {
   sync: { ...DEFAULT_SYNC_CONFIG },
   providers: [
     {
-      id: 'oss-default',
-      name: '阿里云 OSS',
-      type: 'oss',
+      id: 'kodo-default',
+      name: '七牛云 Kodo',
+      type: 'kodo',
       enabled: false,
       config: {
         bucket: '',
-        region: 'oss-cn-hangzhou',
+        region: 'cn-east-1',
         accessKeyId: '',
         accessKeySecret: '',
       },
@@ -116,28 +116,27 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings(settings.value)
 
     try {
-      if (provider.type === 'oss') {
+      if (provider.type === 'kodo') {
         try {
           if (!provider.config.bucket || !provider.config.accessKeyId || !provider.config.accessKeySecret) {
             throw new Error('请填写 Bucket 名称和 AccessKey')
           }
-          const ossConfig: OSSConfig = {
+          const kodoConfig: KodoConfig = {
             bucket: provider.config.bucket,
-            region: provider.config.region || 'oss-cn-hangzhou',
+            region: provider.config.region || 'cn-east-1',
             accessKeyId: provider.config.accessKeyId,
             accessKeySecret: provider.config.accessKeySecret,
           }
-          const ossProvider = new OSSProvider(ossConfig)
-          // 测试连接
-          const testResult = await ossProvider.testConnection()
+          const kodoProvider = new KodoProvider(kodoConfig)
+          const testResult = await kodoProvider.testConnection()
           if (!testResult.ok) {
             throw new Error(testResult.message)
           }
-          await syncEngine.setProvider(ossProvider)
+          await syncEngine.setProvider(kodoProvider)
           provider.status = 'connected'
         } catch (err) {
           provider.status = 'error'
-          provider.lastError = err instanceof Error ? err.message : 'OSS 连接失败'
+          provider.lastError = err instanceof Error ? err.message : '七牛云连接失败'
         }
       }
 
@@ -162,21 +161,21 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /** 测试 OSS 连接 */
-  async function testOSSConnection(): Promise<{ ok: boolean; message: string }> {
-    const provider = settings.value.providers.find(p => p.id === 'oss-default')
-    if (!provider) return { ok: false, message: '找不到 OSS 配置' }
+  async function testKodoConnection(): Promise<{ ok: boolean; message: string }> {
+    const provider = settings.value.providers.find(p => p.id === 'kodo-default')
+    if (!provider) return { ok: false, message: '找不到七牛云配置' }
     if (!provider.config.bucket || !provider.config.accessKeyId || !provider.config.accessKeySecret) {
       return { ok: false, message: '请先填写 Bucket 名称和 AccessKey' }
     }
     try {
-      const ossConfig: OSSConfig = {
+      const kodoConfig: KodoConfig = {
         bucket: provider.config.bucket,
-        region: provider.config.region || 'oss-cn-hangzhou',
+        region: provider.config.region || 'cn-east-1',
         accessKeyId: provider.config.accessKeyId,
         accessKeySecret: provider.config.accessKeySecret,
       }
-      const ossProvider = new OSSProvider(ossConfig)
-      return await ossProvider.testConnection()
+      const kodoProvider = new KodoProvider(kodoConfig)
+      return await kodoProvider.testConnection()
     } catch (err: any) {
       return { ok: false, message: err.message || '连接测试失败' }
     }
@@ -203,7 +202,7 @@ export const useSettingsStore = defineStore('settings', () => {
     toggleProvider,
     connectProvider,
     disconnectProvider,
-    testOSSConnection,
+    testKodoConnection,
     syncNow,
     updateUISettings,
   }

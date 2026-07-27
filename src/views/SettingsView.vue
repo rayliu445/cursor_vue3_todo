@@ -44,8 +44,8 @@
           <div class="flex items-center gap-3">
             <span class="text-lg">&#x2601;&#xFE0F;</span>
             <div>
-              <div class="text-sm font-medium text-gray-800 dark:text-gray-100">阿里云 OSS</div>
-              <div class="text-xs text-gray-400 dark:text-gray-400">国内直连，5GB 免费额度</div>
+              <div class="text-sm font-medium text-gray-800 dark:text-gray-100">七牛云 Kodo</div>
+              <div class="text-xs text-gray-400 dark:text-gray-400">10GB 免费存储，国内直连</div>
             </div>
           </div>
           <div class="flex items-center gap-2.5">
@@ -61,7 +61,7 @@
             </div>
             <div>
               <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Region（地域）</label>
-              <input v-model="store.settings.providers[0].config.region" type="text" placeholder="oss-cn-hangzhou" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
+              <input v-model="store.settings.providers[0].config.region" type="text" placeholder="cn-east-1（华东）" class="input input-bordered input-xs w-full bg-white dark:bg-gray-700 dark:text-gray-200" />
             </div>
             <div>
               <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">AccessKey ID</label>
@@ -73,7 +73,7 @@
             </div>
             <div class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg px-3 py-2.5 text-xs text-blue-600 dark:text-blue-400 mt-2">
               首次使用？查看
-              <a href="https://github.com/rayliu445/cursor_vue3_todo/blob/main/docs/aliyun-oss-guide.md" target="_blank" class="underline font-medium">阿里云 OSS 配置教程</a>
+              <a href="https://github.com/rayliu445/cursor_vue3_todo/blob/main/docs/qiniu-kodo-guide.md" target="_blank" class="underline font-medium">七牛云 Kodo 配置教程</a>
               ，3 分钟完成设置。
             </div>
           </div>
@@ -148,7 +148,7 @@ const themeOptions = [
   { value: 'system' as const, label: '跟随系统', icon: '🌓', desc: '自动跟随系统主题设置' },
 ]
 
-const features = ['日历月/周/日视图', '四象限矩阵', '滴答清单导入', 'CRDT 数据同步', '本地持久化', '阿里云 OSS 云同步']
+const features = ['日历月/周/日视图', '四象限矩阵', '滴答清单导入', 'CRDT 数据同步', '本地持久化', '七牛云 Kodo 云同步']
 
 const syncDotClass = computed(() => {
   const s = store.syncState.status
@@ -167,7 +167,7 @@ const testResult = ref<{ ok: boolean; message: string } | null>(null)
 async function handleTestConnection() {
   isTesting.value = true
   testResult.value = null
-  testResult.value = await store.testOSSConnection()
+  testResult.value = await store.testKodoConnection()
   isTesting.value = false
 }
 

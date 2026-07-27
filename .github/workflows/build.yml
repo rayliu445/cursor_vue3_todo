@@ -64,7 +64,7 @@ jobs:
           cp scripts/fix-gatekeeper.command "$dmg_root/"
           chmod +x "$dmg_root/fix-gatekeeper.command"
           cp scripts/README.txt "$dmg_root/"
-          cp docs/aliyun-oss-guide.md "$dmg_root/" 2>/dev/null || true
+          cp docs/qiniu-kodo-guide.md "$dmg_root/" 2>/dev/null || true
 
           # 创建 DMG
           DMG_NAME="Todo-App-mac-arm64.dmg"
