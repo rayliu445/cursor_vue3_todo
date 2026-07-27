@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { getSyncEngine, type SyncEngine } from '../services/sync-engine'
 import type { SyncConfig } from '../services/providers/types'
 import { DEFAULT_SYNC_CONFIG } from '../services/providers/types'
-import { GoogleDriveProvider, type GoogleDriveConfig } from '../services/providers/gdrive'
+import { OSSProvider, type OSSConfig } from '../services/providers/oss'
 
 // ============ 类型 ============
 
@@ -30,12 +30,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   sync: { ...DEFAULT_SYNC_CONFIG },
   providers: [
     {
-      id: 'gdrive-default',
-      name: 'Google Drive',
-      type: 'gdrive',
+      id: 'oss-default',
+      name: '阿里云 OSS',
+      type: 'oss',
       enabled: false,
       config: {
-        clientId: '',
+        bucket: '',
+        region: 'oss-cn-hangzhou',
+        accessKeyId: '',
+        accessKeySecret: '',
       },
       status: 'disconnected',
     },
@@ -113,30 +116,28 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings(settings.value)
 
     try {
-      if (provider.type === 'gdrive') {
-        // Google Drive - OAuth 2.0 with PKCE
+      if (provider.type === 'oss') {
         try {
-          if (!provider.config.clientId) {
-            throw new Error('请先在 Google Cloud Console 创建 OAuth 凭据并填入客户端 ID')
+          if (!provider.config.bucket || !provider.config.accessKeyId || !provider.config.accessKeySecret) {
+            throw new Error('请填写 Bucket 名称和 AccessKey')
           }
-          const gdriveConfig: GoogleDriveConfig = {
-            clientId: provider.config.clientId,
+          const ossConfig: OSSConfig = {
+            bucket: provider.config.bucket,
+            region: provider.config.region || 'oss-cn-hangzhou',
+            accessKeyId: provider.config.accessKeyId,
+            accessKeySecret: provider.config.accessKeySecret,
           }
-          const gdriveProvider = new GoogleDriveProvider(gdriveConfig)
-          await gdriveProvider.initialize()
-          // 检查是否有有效 token
-          if (!gdriveProvider.isAuthenticated) {
-            // 启动 OAuth 授权
-            const authorized = await gdriveProvider.authorize()
-            if (!authorized) {
-              throw new Error('Google Drive 授权失败')
-            }
+          const ossProvider = new OSSProvider(ossConfig)
+          // 测试连接
+          const testResult = await ossProvider.testConnection()
+          if (!testResult.ok) {
+            throw new Error(testResult.message)
           }
-          await syncEngine.setProvider(gdriveProvider)
+          await syncEngine.setProvider(ossProvider)
           provider.status = 'connected'
         } catch (err) {
           provider.status = 'error'
-          provider.lastError = err instanceof Error ? err.message : 'Google Drive 连接失败'
+          provider.lastError = err instanceof Error ? err.message : 'OSS 连接失败'
         }
       }
 
@@ -151,15 +152,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** 断开云存储连接 */
   async function disconnectProvider() {
-    // 如果当前是 Google Drive，先撤销 token
-    const active = activeProvider.value
-    if (active?.type === 'gdrive') {
-      try {
-        const { GoogleDriveProvider } = await import('../services/providers/gdrive')
-        // 直接清除本地存储的 token
-        localStorage.removeItem('gdrive-tokens')
-      } catch { /* ignore */ }
-    }
     syncEngine.destroy()
     settings.value.providers.forEach(p => {
       p.enabled = false
@@ -167,6 +159,27 @@ export const useSettingsStore = defineStore('settings', () => {
     })
     settings.value.sync.enabled = false
     saveSettings(settings.value)
+  }
+
+  /** 测试 OSS 连接 */
+  async function testOSSConnection(): Promise<{ ok: boolean; message: string }> {
+    const provider = settings.value.providers.find(p => p.id === 'oss-default')
+    if (!provider) return { ok: false, message: '找不到 OSS 配置' }
+    if (!provider.config.bucket || !provider.config.accessKeyId || !provider.config.accessKeySecret) {
+      return { ok: false, message: '请先填写 Bucket 名称和 AccessKey' }
+    }
+    try {
+      const ossConfig: OSSConfig = {
+        bucket: provider.config.bucket,
+        region: provider.config.region || 'oss-cn-hangzhou',
+        accessKeyId: provider.config.accessKeyId,
+        accessKeySecret: provider.config.accessKeySecret,
+      }
+      const ossProvider = new OSSProvider(ossConfig)
+      return await ossProvider.testConnection()
+    } catch (err: any) {
+      return { ok: false, message: err.message || '连接测试失败' }
+    }
   }
 
   /** 触发立即同步 */
@@ -190,6 +203,7 @@ export const useSettingsStore = defineStore('settings', () => {
     toggleProvider,
     connectProvider,
     disconnectProvider,
+    testOSSConnection,
     syncNow,
     updateUISettings,
   }
