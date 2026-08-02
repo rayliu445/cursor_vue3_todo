@@ -138,6 +138,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
+      // 允许渲染进程跨域调用七牛云 API（rs.qiniu.com / up.qiniup.com 未返回 CORS 头）
+      webSecurity: false,
       preload: path.join(__dirname, 'preload.js'),
     },
   })

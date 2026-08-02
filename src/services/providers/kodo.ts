@@ -179,7 +179,13 @@ export class KodoProvider implements CloudProvider {
       })
       if (res.status === 612) return null
       if (!res.ok) return null
-      return new Uint8Array(await res.arrayBuffer())
+      // 注意：rs.qiniu.com/get/ 返回的是文件元信息 JSON（含临时下载 url），
+      // 真正的文件内容需要再请求 meta.url 获取，不能直接把 JSON 当文件内容。
+      const meta = await res.json().catch(() => null)
+      if (!meta || typeof meta.url !== 'string') return null
+      const dlRes = await fetch(meta.url)
+      if (!dlRes.ok) return null
+      return new Uint8Array(await dlRes.arrayBuffer())
     } catch (err) {
       console.error('[Kodo] Read error:', err)
       return null
