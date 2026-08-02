@@ -98,9 +98,17 @@
                 <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">10GB 免费存储，国内直连</div>
               </div>
             </div>
-            <span v-if="store.activeProvider?.enabled" class="text-xs font-medium px-2.5 py-0.5 rounded-full"
+            <span v-if="store.activeProvider?.status === 'connected'" class="text-xs font-medium px-2.5 py-0.5 rounded-full"
               :style="{ backgroundColor: '#f0fdf4', color: '#22c55e' }">已连接</span>
+            <span v-else-if="store.activeProvider?.status === 'connecting'" class="text-xs font-medium px-2.5 py-0.5 rounded-full"
+              :style="{ backgroundColor: '#eff6ff', color: '#3b82f6' }">连接中...</span>
+            <span v-else-if="store.activeProvider?.status === 'error'" class="text-xs font-medium px-2.5 py-0.5 rounded-full"
+              :style="{ backgroundColor: '#fef2f2', color: '#ef4444' }">连接失败</span>
             <span v-else class="text-xs" :style="{ color: 'var(--text-tertiary)' }">未配置</span>
+          </div>
+          <div v-if="store.activeProvider?.status === 'error' && store.activeProvider?.lastError"
+            class="px-5 py-2 text-xs" :style="{ backgroundColor: '#fef2f2', color: '#ef4444' }">
+            错误：{{ store.activeProvider.lastError }}
           </div>
 
           <div class="px-5 py-4 border-t space-y-3"
@@ -125,7 +133,7 @@
               <button v-if="!store.activeProvider?.enabled"
                 class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150"
                 :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
-                @click="handleEnableProvider('oss-default')">连接</button>
+                @click="handleEnableProvider('kodo-default')">连接</button>
               <button v-else
                 class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150"
                 :style="{ backgroundColor: '#fef2f2', color: '#ef4444' }"
