@@ -47,12 +47,13 @@ fix_podfile_platform() {
     return 0
   fi
   local required
-  required=$(grep -o "s\.ios\.deployment_target *= *'[0-9.]*'" "$podspec" | grep -o "[0-9.]*" | head -1)
+  required=$(sed -n "s/.*deployment_target *= *'\([0-9.]*\)'.*/\1/p" "$podspec" | head -1)
   if [ -z "$required" ]; then
+    echo "   ⚠️  未从 podspec 解析到部署目标，跳过对齐"
     return 0
   fi
   local current
-  current=$(grep -o "platform :ios, *'[0-9.]*'" "$podfile" | grep -o "[0-9.]*" | head -1)
+  current=$(sed -n "s/.*platform :ios, *'\([0-9.]*\)'.*/\1/p" "$podfile" | head -1)
   if [ -z "$current" ]; then
     echo "   ⚠️  Podfile 未找到 platform 行，跳过对齐"
     return 0
