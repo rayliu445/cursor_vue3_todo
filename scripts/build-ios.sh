@@ -32,13 +32,44 @@ if [ ! -d "$IOS_DIR/App.xcworkspace" ]; then
   exit 1
 fi
 
-# 2. 构建前端
+# 1. 构建前端
 echo "[1/4] Building web assets..."
 cd "$PROJECT_DIR"
 npm run build
 
+# 2. 对齐 Podfile 部署目标（cap add ios 模板默认 14.0，@capacitor/ios 8.x 要求 15.0+）
+#    在 cap sync 触发 pod install 之前修正，避免 CocoaPods 报
+#    "required a higher minimum deployment target"
+fix_podfile_platform() {
+  local podfile="$IOS_DIR/Podfile"
+  local podspec="$PROJECT_DIR/node_modules/@capacitor/ios/Capacitor.podspec"
+  if [ ! -f "$podfile" ] || [ ! -f "$podspec" ]; then
+    return 0
+  fi
+  local required
+  required=$(grep -o "s\.ios\.deployment_target *= *'[0-9.]*'" "$podspec" | grep -o "[0-9.]*" | head -1)
+  if [ -z "$required" ]; then
+    return 0
+  fi
+  local current
+  current=$(grep -o "platform :ios, *'[0-9.]*'" "$podfile" | grep -o "[0-9.]*" | head -1)
+  if [ -z "$current" ]; then
+    echo "   ⚠️  Podfile 未找到 platform 行，跳过对齐"
+    return 0
+  fi
+  # 数值比较：当前版本低于要求则提升
+  if awk -v c="$current" -v r="$required" 'BEGIN { exit !(c < r) }'; then
+    echo "   📈 iOS 部署目标: $current -> $required（匹配 @capacitor/ios 要求）"
+    sed -i.bak "s/platform :ios, *'[0-9.]*'/platform :ios, '$required'/" "$podfile"
+    rm -f "$podfile.bak"
+  else
+    echo "   ✅ iOS 部署目标 $current 满足要求（>= $required）"
+  fi
+}
+
 # 3. 同步到 iOS 工程
 echo "[2/4] Syncing to iOS project..."
+fix_podfile_platform
 npx cap sync ios
 
 # 4. 编译原生工程（不签名，编译后再统一 ad-hoc 签名）
