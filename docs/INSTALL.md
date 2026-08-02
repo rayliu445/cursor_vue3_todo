@@ -74,12 +74,23 @@ xattr -cr /Applications/TinyDo.app && open /Applications/TinyDo.app
   curl -fsSL -o /tmp/TinyDo.dmg https://github.com/rayliu445/tinydo/releases/latest/download/TinyDo-mac-arm64.dmg
   ```
 
-#### 4. macOS 15+ (Sequoia) 限制更严格
+#### 4. macOS 15+ (Sequoia) 限制更严格（提示「Apple 无法验证是否包含恶意软件」）
 
-- **右键 → 打开** 无法绕过拦截，必须使用上面的 **xattr 命令** 或 `fix-gatekeeper.command` 脚本
-- 如果脚本本身也被拦截，请在终端手动执行：
+macOS 15+ 对隔离下载的脚本会弹出 **「Apple 无法验证『fix-gatekeeper.command』是否包含可能危害 Mac 安全或泄漏隐私的恶意软件」**，且双击时没有「打开」按钮。这是隔离属性的正常提示，**脚本本身是安全的**。处理方式：
+
+- **最可靠：终端直接运行**（终端不受该拦截影响，`xattr` 先清除隔离再运行）：
   ```bash
-  cd /Volumes/TinyDo && bash fix-gatekeeper.command
+  cd /Volumes/TinyDo && xattr -cr fix-gatekeeper.command && bash fix-gatekeeper.command
+  ```
+- **或手动安装**（等价于脚本做的事，两步搞定）：
+  ```bash
+  cp -R /Volumes/TinyDo/TinyDo.app /Applications/
+  xattr -cr /Applications/TinyDo.app
+  open /Applications/TinyDo.app
+  ```
+- **或改用 curl 一键安装**（curl 下载不带隔离属性，完全不会触发任何拦截）：
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/rayliu445/tinydo/main/scripts/install-mac.sh | bash
   ```
 
 #### 5. 首次打开提示「无法打开，因为来自身份不明的开发者」
