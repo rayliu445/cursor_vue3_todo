@@ -223,9 +223,8 @@ interface PrimaryNavItem {
   path: string
 }
 
-// 左列（一级图标）：今天 / 日历 / 四象限 / 已完成
+// 左列（一级图标）：日历 / 四象限 / 已完成（“今天”由中列切换）
 const primaryNavItems: PrimaryNavItem[] = [
-  { id: 'today', label: '今天', icon: 'today', path: '/?view=today' },
   { id: 'calendar', label: '日历', icon: 'calendar', path: '/calendar' },
   { id: 'matrix', label: '四象限', icon: 'matrix', path: '/matrix' },
   { id: 'completed', label: '已完成', icon: 'completed', path: '/completed' },
