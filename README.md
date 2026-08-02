@@ -18,7 +18,7 @@ TinyDo 是一款对标滴答清单的个人任务管理工具，支持多平台�
 |------|--------|------|
 | 🖥️ macOS | `.dmg` | Electron 30（未签名，首次安装见下方说明） |
 | 🖥️ Windows | `.exe` (Portable) | Electron 30 |
-| 📱 iOS | `.ipa` (AltStore 侧载) | Capacitor 8 |
+| 📱 iOS | `.ipa` (AltStore/Sideloadly 侧载) | Capacitor 8（ad-hoc 签名，免费安装） |
 | 📱 Android | `.apk` | Capacitor 8 |
 | 🌐 Web | 浏览器直接访问 | Vite 2 |
 
@@ -26,7 +26,7 @@ TinyDo 是一款对标滴答清单的个人任务管理工具，支持多平台�
 
 ### macOS 首次安装说明
 
-macOS 15+ (Sequoia) 对未签名应用的限制更加严格，无法通过右键→打开绕过。请使用 DMG 内的安装脚本：
+TinyDo 为**未签名应用**，macOS 首次打开可能提示「无法验证开发者」或「已损坏，无法打开」（Gatekeeper 误报，并非应用损坏）。请使用 DMG 内的安装脚本：
 
 1. 打开 DMG
 2. 双击 **`fix-gatekeeper.command`**
@@ -34,10 +34,19 @@ macOS 15+ (Sequoia) 对未签名应用的限制更加严格，无法通过右键
 4. 输入你的 Mac 密码
 5. 脚本自动完成：复制到 Applications → 解除系统拦截 → 启动应用
 
-> 如果 `fix-gatekeeper.command` 也被拦截，可以在终端手动执行：
+> **如果脚本本身也被提示「不安全/已损坏」**：右键 → 打开 → 打开（仅一次）。
+> 脚本运行后会**先对自己执行 `xattr` 解除隔离**，之后再双击即正常。
+>
+> macOS 15+ (Sequoia) 对未签名应用限制更严格，无法通过右键→打开绕过，必须用脚本或命令处理。
+> 在终端手动执行：
 > ```bash
 > xattr -cr /Applications/TinyDo.app && open /Applications/TinyDo.app
 > ```
+>
+> **覆盖安装不会丢失数据**：任务数据和同步配置保存在
+> `~/Library/Application Support/TinyDo/`（应用外部），重装后原样保留、无需重新配置。
+>
+> 完整注意事项见 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ## 技术栈
 
@@ -79,7 +88,7 @@ npm run dist          # macOS .dmg
 npm run electron:build  # 构建但不打包
 
 # 构建移动端 (需要 Xcode / Android SDK)
-npm run mobile:build:ios
+npm run mobile:build:ios       # iOS 侧载 .ipa（ad-hoc 签名，无需开发者账号）
 npm run mobile:build:android
 ```
 
@@ -113,7 +122,8 @@ npm run mobile:build:android
 | `npm run dist` | `.dmg` | macOS 安装包 |
 | `npm run electron:build` | `dist-electron/` | macOS 构建目录 |
 | `npm run mobile:sync` | `ios/` `android/` | 同步前端到原生项目 |
-| `npm run mobile:build:ios` | `.ipa` | iOS 安装包 (需 Xcode) |
+| `npm run mobile:build:ios` | `.ipa` | iOS 侧载安装包 (ad-hoc 签名, 需 Xcode) |
+| `npm run mobile:build:ios:adhoc` | `.ipa` | 同上（等价命令） |
 | `npm run mobile:build:android` | `.apk` | Android 安装包 |
 | `npm run release:all` | 全部 | 一键全平台构建 |
 

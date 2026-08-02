@@ -77,7 +77,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: dist-electron/Todo-App-mac-arm64.dmg
+          path: dist-electron/TinyDo-mac-arm64.dmg
 
   build-win:
     name: Build Windows
@@ -138,10 +138,36 @@ jobs:
           name: android-build
           path: android/app/build/outputs/apk/debug/*.apk
 
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Set up iOS project
+        run: |
+          if [ ! -d "ios/App" ]; then
+            CI=true npx cap add ios 2>&1 || npx cap add ios
+          fi
+        env:
+          CI: true
+      - name: Build iOS .ipa (ad-hoc)
+        run: bash scripts/build-ios.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: ios/build/ipa/*.ipa
+
   create-release:
     name: Create Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [build-web, build-mac, build-win, build-android]
+    needs: [build-web, build-mac, build-win, build-android, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -154,6 +180,7 @@ jobs:
           cp mac-build/* release/ 2>/dev/null || true
           cp win-build/* release/ 2>/dev/null || true
           cp android-build/* release/ 2>/dev/null || true
+          cp ios-build/* release/ 2>/dev/null || true
           ls -lh release/
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

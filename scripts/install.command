@@ -12,6 +12,12 @@ APP_NAME="TinyDo.app"
 APP_PATH="$SCRIPT_DIR/$APP_NAME"
 INSTALL_PATH="/Applications/$APP_NAME"
 
+# 先解除脚本自身的隔离属性（防止脚本被 Gatekeeper 判定为"不安全"）
+if command -v xattr &>/dev/null; then
+  xattr -cr "$SCRIPT_DIR" 2>/dev/null || true
+  xattr -cr "$0" 2>/dev/null || true
+fi
+
 echo "========================================"
 echo "  TinyDo 安装程序"
 echo "========================================"
@@ -29,6 +35,7 @@ fi
 # 检查是否已安装
 if [ -d "$INSTALL_PATH" ]; then
   echo "⚠️  检测到已安装的版本，正在覆盖..."
+  echo "   ✅ 您的任务数据与同步配置会保留（位于 ~/Library/Application Support/TinyDo）"
   rm -rf "$INSTALL_PATH"
 fi
 
