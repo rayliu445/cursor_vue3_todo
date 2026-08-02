@@ -75,40 +75,69 @@
         </div>
       </div>
 
-      <!-- 导航菜单 -->
-      <nav class="flex-1 overflow-y-auto px-2 pt-1 pb-2 space-y-0.5">
-        <div
-          v-for="item in navItems"
-          :key="item.id"
-          class="relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150"
-          :class="{
-            'font-medium': isActive(item),
-          }"
-          :style="getNavItemStyle(item)"
-          @click="navigateTo(item)"
+      <!-- 导航：两列（左列一级图标 + 中列二级清单） -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- 左列：添加任务 / 今天 / 日历 / 四象限 / 已完成 -->
+        <nav
+          class="w-14 flex-shrink-0 flex flex-col items-center gap-1 py-2 border-r overflow-y-auto"
+          :style="{ borderColor: 'var(--border-color)' }"
         >
-          <!-- 选中指示器 -->
-          <div
-            v-if="isActive(item)"
-            class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r sidebar-indicator"
-            :style="{ backgroundColor: 'var(--color-accent)' }"
-          />
-          <!-- 图标 -->
-          <span class="flex-shrink-0 flex items-center justify-center" :style="{ opacity: isActive(item) ? 1 : 0.6 }">
-            <AppIcon :name="item.id" :size="18" :color="isActive(item) ? 'var(--text-primary)' : 'var(--text-secondary)'" />
-          </span>
-          <!-- 标签 -->
-          <span class="flex-1 truncate">{{ item.label }}</span>
-          <!-- 数量 -->
-          <span
-            v-if="item.count !== undefined"
-            class="text-xs tabular-nums flex-shrink-0"
-            :style="{ color: 'var(--text-tertiary)' }"
+          <!-- 添加任务（第一列第一个） -->
+          <button
+            class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
+            :style="{ backgroundColor: 'var(--color-accent-light)' }"
+            title="添加任务"
+            @click="handleAddTask"
           >
-            {{ item.count }}
-          </span>
-        </div>
-      </nav>
+            <AppIcon name="add" :size="20" color="var(--color-accent)" />
+          </button>
+          <button
+            v-for="item in primaryNavItems"
+            :key="item.id"
+            class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
+            :style="getIconNavStyle(item)"
+            :title="item.label"
+            @click="navigateTo(item)"
+          >
+            <AppIcon :name="item.icon" :size="20" :color="isActive(item) ? 'var(--color-accent)' : 'var(--text-secondary)'" />
+          </button>
+        </nav>
+
+        <!-- 中列（二级）：今天 / 最近7天 / 收集箱 -->
+        <nav class="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+          <div
+            v-for="item in secondaryNavItems"
+            :key="item.id"
+            class="relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150"
+            :class="{
+              'font-medium': isActive(item),
+            }"
+            :style="getNavItemStyle(item)"
+            @click="navigateTo(item)"
+          >
+            <!-- 选中指示器 -->
+            <div
+              v-if="isActive(item)"
+              class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r sidebar-indicator"
+              :style="{ backgroundColor: 'var(--color-accent)' }"
+            />
+            <!-- 图标 -->
+            <span class="flex-shrink-0 flex items-center justify-center" :style="{ opacity: isActive(item) ? 1 : 0.6 }">
+              <AppIcon :name="item.id" :size="18" :color="isActive(item) ? 'var(--text-primary)' : 'var(--text-secondary)'" />
+            </span>
+            <!-- 标签 -->
+            <span class="flex-1 truncate">{{ item.label }}</span>
+            <!-- 数量 -->
+            <span
+              v-if="item.count !== undefined"
+              class="text-xs tabular-nums flex-shrink-0"
+              :style="{ color: 'var(--text-tertiary)' }"
+            >
+              {{ item.count }}
+            </span>
+          </div>
+        </nav>
+      </div>
 
       <!-- 底部：设置 -->
       <div
@@ -187,15 +216,40 @@ interface NavItem {
   count?: number | string
 }
 
-// 导航项：收集箱 / 今天 / 最近7天 / 日历 / 四象限 / 已完成
-const navItems = computed<NavItem[]>(() => [
-  { id: 'inbox', label: '收集箱', path: '/', count: allCount.value || '' },
+interface PrimaryNavItem {
+  id: string
+  label: string
+  icon: string
+  path: string
+}
+
+// 左列（一级图标）：今天 / 日历 / 四象限 / 已完成
+const primaryNavItems: PrimaryNavItem[] = [
+  { id: 'today', label: '今天', icon: 'today', path: '/?view=today' },
+  { id: 'calendar', label: '日历', icon: 'calendar', path: '/calendar' },
+  { id: 'matrix', label: '四象限', icon: 'matrix', path: '/matrix' },
+  { id: 'completed', label: '已完成', icon: 'completed', path: '/completed' },
+]
+
+// 添加任务：跳到收集箱并聚焦添加输入框
+function handleAddTask() {
+  router.push('/')
+  window.dispatchEvent(new CustomEvent('tinydo-focus-add'))
+}
+
+// 中列（二级清单）：今天 / 最近7天 / 收集箱
+const secondaryNavItems = computed<NavItem[]>(() => [
   { id: 'today', label: '今天', path: '/?view=today', count: todayCount.value || '' },
   { id: 'next7', label: '最近7天', path: '/?view=next7', count: next7Count.value || '' },
-  { id: 'calendar', label: '日历', path: '/calendar' },
-  { id: 'matrix', label: '四象限', path: '/matrix' },
-  { id: 'completed', label: '已完成', path: '/completed', count: completedCount.value || '' },
+  { id: 'inbox', label: '收集箱', path: '/', count: allCount.value || '' },
 ])
+
+function getIconNavStyle(item: PrimaryNavItem) {
+  const active = isActive(item)
+  return {
+    backgroundColor: active ? 'var(--color-accent-light)' : 'transparent',
+  }
+}
 
 function isActive(item: NavItem): boolean {
   if (item.id === 'inbox') return route.path === '/' && !route.query.view
