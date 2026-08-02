@@ -73,14 +73,18 @@ echo "[2/4] Syncing to iOS project..."
 fix_podfile_platform
 npx cap sync ios
 
-# 4. 编译原生工程（不签名，编译后再统一 ad-hoc 签名）
-echo "[3/4] Building native app (unsigned)..."
+# 4. 编译原生工程（ad-hoc 签名）
+#    注意：新版本 Xcode 下 CODE_SIGNING_ALLOWED=NO 会导致
+#    "bundle format unrecognized, invalid, or unsuitable" 构建失败，
+#    因此改用 ad-hoc 身份（-）签名编译，产物可直接被 AltStore 重签安装。
+echo "[3/4] Building native app (ad-hoc signed)..."
 rm -rf "$BUILD_DIR"
 cd "$IOS_DIR"
 xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
   -sdk iphoneos -derivedDataPath "$BUILD_DIR/derived" \
-  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-  build 2>&1 | tail -5
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="-" \
+  CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=YES VALIDATE_PRODUCT=NO \
+  build 2>&1 | tail -15
 
 APP_PATH="$BUILD_DIR/derived/Build/Products/Release-iphoneos/App.app"
 if [ ! -d "$APP_PATH" ]; then
