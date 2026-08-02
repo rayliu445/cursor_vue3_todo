@@ -1,21 +1,35 @@
 <template>
   <div class="flex flex-col h-full overflow-hidden" :style="{ backgroundColor: 'var(--bg-app)' }">
-    <!-- ===== 页面头部 ===== -->
+    <!-- ===== 页面头部（含二级目录 tabs） ===== -->
     <div
-      class="flex items-center justify-between px-6 h-14 border-b flex-shrink-0"
+      class="px-6 border-b flex-shrink-0"
       :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
     >
-      <div class="flex items-center gap-3">
-        <h1 class="text-lg font-semibold" :style="{ color: 'var(--text-primary)' }">
-          {{ pageTitle }}
-        </h1>
-        <span
-          v-if="filteredTodos.length > 0"
-          class="text-xs px-2 py-0.5 rounded-full"
-          :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }"
+      <div class="flex items-center justify-between h-14">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold" :style="{ color: 'var(--text-primary)' }">
+            {{ pageTitle }}
+          </h1>
+          <span
+            v-if="filteredTodos.length > 0"
+            class="text-xs px-2 py-0.5 rounded-full"
+            :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }"
+          >
+            {{ filteredTodos.length }}
+          </span>
+        </div>
+      </div>
+      <!-- 二级目录：收集箱 / 今天 / 最近7天 -->
+      <div class="flex items-center gap-1 pb-2">
+        <button
+          v-for="tab in viewTabs"
+          :key="tab.id"
+          class="px-3 py-1.5 text-sm rounded-lg transition-all duration-150"
+          :style="getTabStyle(tab.id)"
+          @click="switchView(tab.id)"
         >
-          {{ filteredTodos.length }}
-        </span>
+          {{ tab.label }}
+        </button>
       </div>
     </div>
 
@@ -303,15 +317,37 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
 
 const route = useRoute()
+const router = useRouter()
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 const { fetchTodos, removeTodo } = todoStore
+
+// ============ 二级目录 tabs ============
+const viewTabs = [
+  { id: 'inbox', label: '收集箱' },
+  { id: 'today', label: '今天' },
+  { id: 'next7', label: '最近7天' },
+]
+
+function switchView(view: string) {
+  if (view === 'inbox') router.push('/')
+  else router.push(`/?view=${view}`)
+}
+
+function getTabStyle(tabId: string) {
+  const active = currentView.value === tabId
+  return {
+    color: active ? 'var(--color-accent)' : 'var(--text-secondary)',
+    backgroundColor: active ? 'var(--color-accent-light)' : 'transparent',
+    fontWeight: active ? 600 : 400,
+  }
+}
 
 // ============ 页面标题和过滤器 ============
 const currentView = computed(() => {
