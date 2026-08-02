@@ -23,4 +23,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getICloudPath: () => ipcRenderer.invoke('get-icloud-path'),
   readICloudFile: (relativePath) => ipcRenderer.invoke('read-icloud-file', relativePath),
   writeICloudFile: (relativePath, data) => ipcRenderer.invoke('write-icloud-file', relativePath, data),
+
+  // ============ 软件更新 ============
+  checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
+  downloadAndInstall: (url) => ipcRenderer.invoke('download-and-install', url),
+  onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_e, p) => cb(p)),
 })

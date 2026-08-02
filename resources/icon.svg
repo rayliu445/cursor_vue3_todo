@@ -1,8 +1,8 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 背景：纯白 squircle -->
-  <rect x="40" y="40" width="944" height="944" rx="232" fill="#FFFFFF"/>
+  <!-- 背景：纯白 squircle（大圆角，更圆润） -->
+  <rect x="40" y="40" width="944" height="944" rx="280" fill="#FFFFFF"/>
   <!-- 浅灰描边（白底上可见边界） -->
-  <rect x="40" y="40" width="944" height="944" rx="232" fill="none" stroke="#EDE8E0" stroke-width="10"/>
+  <rect x="40" y="40" width="944" height="944" rx="280" fill="none" stroke="#EDE8E0" stroke-width="10"/>
 
   <!-- 像素柴犬：居中放大（32 网格 × 16 = 512px，起点 256,256） -->
   <g transform="translate(256 256) scale(16)" shape-rendering="crispEdges">

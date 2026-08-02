@@ -211,6 +211,58 @@
             </a>
           </div>
         </div>
+        <!-- 软件更新卡片 -->
+        <div class="rounded-xl p-5"
+          :style="{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-sm font-medium" :style="{ color: 'var(--text-primary)' }">软件更新</div>
+            <button v-if="isElectron && updateState === 'idle'"
+              class="px-3 py-1.5 text-xs rounded-lg transition-all duration-150"
+              :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
+              @click="handleCheckUpdate">检查更新</button>
+          </div>
+
+          <div v-if="!isElectron" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+            桌面版支持自动更新，Web 版请前往 GitHub Releases 下载最新安装包。
+          </div>
+
+          <div v-else-if="updateState === 'checking'" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+            正在检查更新...
+          </div>
+
+          <div v-else-if="updateState === 'none'" class="text-xs" :style="{ color: '#22c55e' }">
+            ✓ 已是最新版本（v{{ appVersion }}）
+          </div>
+
+          <div v-else-if="updateState === 'available'" class="space-y-3">
+            <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+              发现新版本 <span class="font-medium" :style="{ color: 'var(--text-primary)' }">v{{ updateInfo?.latestVersion }}</span>
+              （当前 v{{ appVersion }}）
+            </div>
+            <button class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150"
+              :style="{ backgroundColor: 'var(--color-accent-light)', color: 'var(--text-primary)' }"
+              @click="handleInstallUpdate">下载并安装</button>
+          </div>
+
+          <div v-else-if="updateState === 'updating'" class="space-y-2">
+            <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">正在下载 v{{ updateInfo?.latestVersion }} ... {{ updateProgress }}%</div>
+            <div class="w-full h-2 rounded-full" :style="{ backgroundColor: 'var(--bg-hover)' }">
+              <div class="h-2 rounded-full transition-all duration-150" :style="{ width: updateProgress + '%', backgroundColor: 'var(--color-accent)' }"></div>
+            </div>
+          </div>
+
+          <div v-else-if="updateState === 'done'" class="text-xs" :style="{ color: '#22c55e' }">
+            ✓ 新版本已安装完成！请重启应用生效（任务数据与同步配置会保留）。
+          </div>
+
+          <div v-else-if="updateState === 'error'" class="space-y-2">
+            <div class="text-xs" :style="{ color: '#ef4444' }">更新失败：{{ updateError }}</div>
+            <button class="px-3 py-1.5 text-xs rounded-lg"
+              :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
+              @click="handleCheckUpdate">重试</button>
+          </div>
+        </div>
+
         <div class="rounded-xl p-5"
           :style="{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }">
           <div class="text-xs font-medium mb-3" :style="{ color: 'var(--text-secondary)' }">功能列表</div>
@@ -237,6 +289,49 @@ const activeTab = ref<'storage' | 'sync' | 'theme' | 'about'>('storage')
 
 // 版本号：由 vite.config.js 注入（读取自 package.json，随版本发布自动更新）
 const appVersion = __APP_VERSION__
+
+// ============ 软件更新 ============
+const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI
+const updateState = ref<'idle' | 'checking' | 'available' | 'none' | 'updating' | 'done' | 'error'>('idle')
+const updateInfo = ref<{ latestVersion?: string; downloadUrl?: string } | null>(null)
+const updateProgress = ref(0)
+const updateError = ref('')
+
+async function handleCheckUpdate() {
+  if (!isElectron) return
+  updateState.value = 'checking'
+  updateError.value = ''
+  try {
+    const res = await (window as any).electronAPI.checkForUpdate()
+    if (res.error) {
+      updateState.value = 'error'
+      updateError.value = res.error
+      return
+    }
+    updateInfo.value = res
+    updateState.value = res.hasUpdate ? 'available' : 'none'
+  } catch (err: any) {
+    updateState.value = 'error'
+    updateError.value = err?.message || '检查更新失败'
+  }
+}
+
+function handleInstallUpdate() {
+  if (!isElectron || !updateInfo.value?.downloadUrl) return
+  updateState.value = 'updating'
+  updateProgress.value = 0
+  ;(window as any).electronAPI.onUpdateProgress((p: number) => {
+    updateProgress.value = p
+  })
+  ;(window as any).electronAPI.downloadAndInstall(updateInfo.value.downloadUrl).then((res: any) => {
+    if (res && res.success) {
+      updateState.value = 'done'
+    } else {
+      updateState.value = 'error'
+      updateError.value = (res && res.error) || '安装失败'
+    }
+  })
+}
 
 const tabs = [
   { id: 'storage' as const, label: '存储', icon: 'storage' },

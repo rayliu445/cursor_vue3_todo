@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
+const https = require('https')
+const { execSync } = require('child_process')
 
 // 允许 file:// 协议加载 ES Module（解决 type="module" + file:// 的 CORS 限制）
 app.commandLine.appendSwitch('--allow-file-access-from-files')
@@ -513,6 +516,102 @@ ipcMain.handle('write-icloud-file', async (event, relativePath, base64Data) => {
     fs.writeFileSync(fullPath, buffer)
     return { success: true }
   } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// ============ 软件更新 ============
+const UPDATE_REPO = 'rayliu445/tinydo'
+
+/** 版本号比较：a > b 返回 >0 */
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(Number)
+  const pb = String(b).split('.').map(Number)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0
+    const nb = pb[i] || 0
+    if (na !== nb) return na - nb
+  }
+  return 0
+}
+
+/** HTTPS GET 返回 JSON */
+function httpsGetJson(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'User-Agent': 'TinyDo' } }, (res) => {
+      let body = ''
+      res.on('data', (c) => { body += c })
+      res.on('end', () => {
+        try { resolve(JSON.parse(body)) } catch (e) { reject(e) }
+      })
+    }).on('error', reject)
+  })
+}
+
+/** 下载文件（带进度回调 0-1） */
+function downloadFile(url, dest, onProgress) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest)
+    https.get(url, { headers: { 'User-Agent': 'TinyDo' } }, (res) => {
+      if (res.statusCode !== 200) { reject(new Error('下载失败 HTTP ' + res.statusCode)); return }
+      const total = parseInt(res.headers['content-length'] || '0', 10)
+      let received = 0
+      res.on('data', (chunk) => {
+        received += chunk.length
+        if (onProgress && total) onProgress(received / total)
+      })
+      res.pipe(file)
+      file.on('finish', () => { file.close(); if (onProgress) onProgress(1); resolve(dest) })
+      file.on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
+    }).on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
+  })
+}
+
+/** 检查更新：对比 GitHub 最新 release 与当前版本 */
+ipcMain.handle('check-for-update', async () => {
+  const currentVersion = app.getVersion()
+  try {
+    const release = await httpsGetJson(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`)
+    const latestVersion = String(release.tag_name || '').replace(/^v/, '')
+    const downloadUrl = (release.assets || [])
+      .find((a) => /mac/.test(a.name) && /\.dmg$/.test(a.name))?.browser_download_url
+    return {
+      currentVersion,
+      latestVersion,
+      hasUpdate: !!(latestVersion && downloadUrl && compareVersions(latestVersion, currentVersion) > 0),
+      downloadUrl,
+    }
+  } catch (err) {
+    info('[Update] check failed: ' + err.message)
+    return { error: err.message }
+  }
+})
+
+/** 下载最新版并覆盖安装（保留用户数据与配置，位于 ~/Library/Application Support/tinydo） */
+ipcMain.handle('download-and-install', async (event, downloadUrl) => {
+  if (!downloadUrl) return { success: false, error: '缺少下载地址' }
+  try {
+    const tmpDmg = path.join(os.tmpdir(), `tinydo-update-${Date.now()}.dmg`)
+    info('[Update] downloading: ' + downloadUrl)
+    await downloadFile(downloadUrl, tmpDmg, (p) => {
+      event.sender.send('update-progress', Math.round(p * 100))
+    })
+
+    const mount = path.join(os.tmpdir(), `tinydo-mount-${Date.now()}`)
+    fs.mkdirSync(mount, { recursive: true })
+    execSync(`hdiutil attach "${tmpDmg}" -mountpoint "${mount}" -nobrowse -quiet`)
+    const srcApp = path.join(mount, 'TinyDo.app')
+    if (!fs.existsSync(srcApp)) throw new Error('DMG 内未找到 TinyDo.app')
+    const target = '/Applications/TinyDo.app'
+    if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true })
+    fs.cpSync(srcApp, target, { recursive: true })
+    execSync(`xattr -cr "${target}"`)
+    execSync(`hdiutil detach "${mount}" -quiet`)
+    try { fs.unlinkSync(tmpDmg) } catch {}
+    info('[Update] installed new version')
+    return { success: true }
+  } catch (err) {
+    info('[Update] install failed: ' + err.message)
     return { success: false, error: err.message }
   }
 })
