@@ -71,7 +71,8 @@
       ],
       "category": "public.app-category.productivity",
       "artifactName": "TinyDo-${version}-mac",
-      "identity": null
+      "identity": null,
+      "icon": "resources/icon.png"
     },
     "win": {
       "target": [
@@ -82,7 +83,8 @@
           ]
         }
       ],
-      "artifactName": "TinyDo-${version}-win.exe"
+      "artifactName": "TinyDo-${version}-win.exe",
+      "icon": "resources/icon.png"
     },
     "files": [
       "dist/**/*",
