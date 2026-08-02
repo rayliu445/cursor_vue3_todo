@@ -18,9 +18,6 @@
 | **Electron** | — | 当前 macOS 桌面端的运行时框架。将 Vue 3 Web 应用打包为原生桌面应用。 |
 | **Capacitor** | — | 将 Web 应用打包为 iOS/Android 原生应用的框架。由 Ionic 团队维护。 |
 | **WebView** | — | 移动端应用中用于渲染 Web 内容的原生组件。Capacitor 应用本质上是一个全屏 WebView。 |
-| **iCloud Drive** | — | Apple 的云存储服务，用于 macOS/iOS 设备间文件同步。 |
-| **Google Drive** | — | Google 的云存储服务，用于 Android 设备文件同步。 |
-| **WebDAV** | — | 一种基于 HTTP 的文件管理协议，支持用户自建或使用第三方（如 Nutstore/坚果云）服务。 |
 
 ## 应用功能
 
@@ -40,3 +37,5 @@
 | **同步引擎** | Sync Engine | 负责检测数据变更、读写云存储、同步数据库文件的模块。 |
 | **离线优先** | Offline-First | 应用设计原则：所有功能在无网络连接时仍可完整使用。 |
 | **对象存储** | Object Storage | 云存储服务（如七牛云 Kodo），以文件形式存储数据，通过 HTTP API 读写。 |
+| **CRDT** | Conflict-Free Replicated Data Type | 无冲突复制数据类型。本项目用于云端文件的序列化格式（`TinyDo/data.automerge`），本地读写仍以 SQLite 为准。 |
+| **LWW 合并** | Last Write Wins | 冲突解决策略：同一任务在多个设备被修改时，以 `updatedAt` 较晚的版本为准。 |
