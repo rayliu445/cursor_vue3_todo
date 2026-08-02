@@ -37,19 +37,24 @@ echo "[1/4] Building web assets..."
 cd "$PROJECT_DIR"
 npm run build
 
-# 2. 对齐 Podfile 部署目标（cap add ios 模板默认 14.0，@capacitor/ios 8.x 要求 15.0+）
-#    在 cap sync 触发 pod install 之前修正，避免 CocoaPods 报
-#    "required a higher minimum deployment target"
+# 2. 对齐 iOS 部署目标（cap add ios 模板默认 14.0，@capacitor/ios 8.x 要求 15.0+）
+#    需要同时修正：
+#    a) Podfile 的 platform（cap sync 触发 pod install 时校验）
+#    b) Xcode 工程的 IPHONEOS_DEPLOYMENT_TARGET（编译时校验，模板 pbxproj 也是 14.0）
+#    先从 @capacitor/ios 的 podspec 读取要求的部署目标。
+get_required_deployment() {
+  local podspec="$PROJECT_DIR/node_modules/@capacitor/ios/Capacitor.podspec"
+  [ -f "$podspec" ] && sed -n "s/.*deployment_target *= *'\([0-9.]*\)'.*/\1/p" "$podspec" | head -1
+}
+REQUIRED_DEPLOYMENT=$(get_required_deployment)
+if [ -z "$REQUIRED_DEPLOYMENT" ]; then
+  echo "   ⚠️  未从 podspec 解析到部署目标，默认 15.0"
+  REQUIRED_DEPLOYMENT="15.0"
+fi
+
 fix_podfile_platform() {
   local podfile="$IOS_DIR/Podfile"
-  local podspec="$PROJECT_DIR/node_modules/@capacitor/ios/Capacitor.podspec"
-  if [ ! -f "$podfile" ] || [ ! -f "$podspec" ]; then
-    return 0
-  fi
-  local required
-  required=$(sed -n "s/.*deployment_target *= *'\([0-9.]*\)'.*/\1/p" "$podspec" | head -1)
-  if [ -z "$required" ]; then
-    echo "   ⚠️  未从 podspec 解析到部署目标，跳过对齐"
+  if [ ! -f "$podfile" ]; then
     return 0
   fi
   local current
@@ -59,12 +64,12 @@ fix_podfile_platform() {
     return 0
   fi
   # 数值比较：当前版本低于要求则提升
-  if awk -v c="$current" -v r="$required" 'BEGIN { exit !(c < r) }'; then
-    echo "   📈 iOS 部署目标: $current -> $required（匹配 @capacitor/ios 要求）"
-    sed -i.bak "s/platform :ios, *'[0-9.]*'/platform :ios, '$required'/" "$podfile"
+  if awk -v c="$current" -v r="$REQUIRED_DEPLOYMENT" 'BEGIN { exit !(c < r) }'; then
+    echo "   📈 iOS 部署目标: $current -> $REQUIRED_DEPLOYMENT（匹配 @capacitor/ios 要求）"
+    sed -i.bak "s/platform :ios, *'[0-9.]*'/platform :ios, '$REQUIRED_DEPLOYMENT'/" "$podfile"
     rm -f "$podfile.bak"
   else
-    echo "   ✅ iOS 部署目标 $current 满足要求（>= $required）"
+    echo "   ✅ Podfile 部署目标 $current 满足要求（>= $REQUIRED_DEPLOYMENT）"
   fi
 }
 
@@ -87,6 +92,7 @@ xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
   -sdk iphoneos -derivedDataPath "$BUILD_DIR/derived" \
   CODE_SIGN_STYLE=Manual CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY="" VALIDATE_PRODUCT=NO \
+  IPHONEOS_DEPLOYMENT_TARGET="$REQUIRED_DEPLOYMENT" \
   build 2>&1 | tail -15
 
 APP_PATH="$BUILD_DIR/derived/Build/Products/Release-iphoneos/App.app"
