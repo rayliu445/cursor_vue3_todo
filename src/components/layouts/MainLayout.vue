@@ -16,28 +16,45 @@
       >
         <div
           class="w-8 h-8 rounded-full flex items-center justify-center select-none overflow-hidden"
-          :style="{ backgroundColor: '#ffd6a5' }"
+          :style="{ backgroundColor: '#ffe3b3' }"
         >
-          <!-- 像素风卡通头像 -->
-          <svg viewBox="0 0 32 32" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- 头发 -->
-            <rect x="8" y="6" width="16" height="6" rx="2" fill="#4a3728"/>
-            <rect x="6" y="8" width="4" height="4" rx="1" fill="#4a3728"/>
-            <rect x="22" y="8" width="4" height="4" rx="1" fill="#4a3728"/>
-            <rect x="10" y="4" width="12" height="4" rx="2" fill="#4a3728"/>
-            <!-- 脸部 -->
-            <rect x="8" y="10" width="16" height="12" rx="3" fill="#ffd6a5"/>
-            <!-- 眼睛 -->
-            <rect x="11" y="14" width="3" height="3" rx="1" fill="#333"/>
-            <rect x="18" y="14" width="3" height="3" rx="1" fill="#333"/>
-            <!-- 眼睛高光 -->
-            <rect x="12" y="14" width="1" height="1" fill="#fff"/>
-            <rect x="19" y="14" width="1" height="1" fill="#fff"/>
-            <!-- 嘴巴（微笑） -->
-            <path d="M13 20a3 3 0 0 0 6 0" stroke="#e88c31" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-            <!-- 腮红 -->
-            <rect x="9" y="17" width="2" height="2" rx="1" fill="#ffb5b5" opacity="0.6"/>
-            <rect x="21" y="17" width="2" height="2" rx="1" fill="#ffb5b5" opacity="0.6"/>
+          <!-- 像素柴犬头像 -->
+          <svg viewBox="0 0 32 32" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+            <!-- 左耳（棕） -->
+            <rect x="6" y="4" width="4" height="3" fill="#c98a3d"/>
+            <rect x="5" y="7" width="6" height="2" fill="#c98a3d"/>
+            <!-- 右耳（棕） -->
+            <rect x="22" y="4" width="4" height="3" fill="#c98a3d"/>
+            <rect x="21" y="7" width="6" height="2" fill="#c98a3d"/>
+            <!-- 内耳（深棕） -->
+            <rect x="7" y="6" width="2" height="2" fill="#8a5720"/>
+            <rect x="23" y="6" width="2" height="2" fill="#8a5720"/>
+            <!-- 头顶（棕） -->
+            <rect x="9" y="7" width="14" height="2" fill="#c98a3d"/>
+            <!-- 脸颊（棕） -->
+            <rect x="8" y="8" width="16" height="1" fill="#c98a3d"/>
+            <rect x="7" y="9" width="18" height="6" fill="#c98a3d"/>
+            <!-- 白色眉毛点（柴犬标志） -->
+            <rect x="10" y="9" width="2" height="1" fill="#f5ead6"/>
+            <rect x="20" y="9" width="2" height="1" fill="#f5ead6"/>
+            <!-- 眼睛（黑） -->
+            <rect x="10" y="11" width="3" height="3" fill="#2b1a0e"/>
+            <rect x="19" y="11" width="3" height="3" fill="#2b1a0e"/>
+            <!-- 眼睛高光（白） -->
+            <rect x="11" y="11" width="1" height="1" fill="#fff"/>
+            <rect x="20" y="11" width="1" height="1" fill="#fff"/>
+            <!-- 白色下巴（柴犬白嘴） -->
+            <rect x="11" y="13" width="10" height="1" fill="#f5ead6"/>
+            <rect x="10" y="14" width="12" height="2" fill="#f5ead6"/>
+            <rect x="9" y="16" width="14" height="2" fill="#f5ead6"/>
+            <rect x="8" y="18" width="16" height="3" fill="#f5ead6"/>
+            <rect x="9" y="21" width="14" height="2" fill="#f5ead6"/>
+            <rect x="10" y="23" width="12" height="1" fill="#f5ead6"/>
+            <!-- 鼻子（黑） -->
+            <rect x="14" y="14" width="4" height="2" fill="#2b1a0e"/>
+            <!-- 嘴（黑） -->
+            <rect x="15" y="16" width="2" height="2" fill="#2b1a0e"/>
+            <rect x="13" y="18" width="6" height="1" fill="#2b1a0e"/>
           </svg>
         </div>
         <div v-if="showSecondaryNav" class="flex-1 min-w-0">
