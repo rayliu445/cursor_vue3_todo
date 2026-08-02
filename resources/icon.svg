@@ -1,8 +1,10 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 背景：纯白铺满整个画布。
-       macOS 系统会自动对应用图标套用统一的 squircle 圆角遮罩，
-       因此这里不要自己画圆角、也不要留透明边距（否则会和旁边应用形状不一致）。 -->
-  <rect x="0" y="0" width="1024" height="1024" fill="#FFFFFF"/>
+  <!-- 背景：自带 squircle 圆角的圆角方形。
+       注意：不依赖 macOS 系统自动套圆角（部分系统/图标缓存不生效时会是方形），
+       所以这里直接在 PNG 里画好圆角，保证任何环境下显示都是圆润的。
+       圆角 rx≈25%（260px），四周留少量透明边距避免双重圆角突兀。 -->
+  <rect x="20" y="20" width="984" height="984" rx="260" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="984" height="984" rx="260" fill="none" stroke="#EDE8E0" stroke-width="8"/>
 
   <!-- 像素柴犬：放大更饱满（32 网格 × 18 = 576px，起点 224,224） -->
   <g transform="translate(224 224) scale(18)" shape-rendering="crispEdges">
@@ -44,6 +46,6 @@
     <rect x="23" y="14" width="2" height="2" fill="#ffb3a7" opacity="0.85"/>
   </g>
 
-  <!-- 右上角对勾：绿色（完成语义，与常见图标一致） -->
+  <!-- 右上角对勾：绿色（完成语义） -->
   <path d="M712 320 l84 84 l168 -196" stroke="#22c55e" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>
