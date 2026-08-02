@@ -1,11 +1,11 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 背景：纯白 squircle（大圆角，更圆润） -->
-  <rect x="40" y="40" width="944" height="944" rx="280" fill="#FFFFFF"/>
-  <!-- 浅灰描边（白底上可见边界） -->
-  <rect x="40" y="40" width="944" height="944" rx="280" fill="none" stroke="#EDE8E0" stroke-width="10"/>
+  <!-- 背景：纯白铺满整个画布。
+       macOS 系统会自动对应用图标套用统一的 squircle 圆角遮罩，
+       因此这里不要自己画圆角、也不要留透明边距（否则会和旁边应用形状不一致）。 -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#FFFFFF"/>
 
-  <!-- 像素柴犬：居中放大（32 网格 × 16 = 512px，起点 256,256） -->
-  <g transform="translate(256 256) scale(16)" shape-rendering="crispEdges">
+  <!-- 像素柴犬：放大更饱满（32 网格 × 18 = 576px，起点 224,224） -->
+  <g transform="translate(224 224) scale(18)" shape-rendering="crispEdges">
     <!-- 左耳（棕） -->
     <rect x="5" y="3" width="5" height="4" fill="#c8792f"/>
     <rect x="4" y="7" width="7" height="2" fill="#c8792f"/>
@@ -27,7 +27,7 @@
     <rect x="18" y="11" width="4" height="4" fill="#3b2a1a"/>
     <rect x="11" y="11" width="2" height="2" fill="#fff"/>
     <rect x="19" y="11" width="2" height="2" fill="#fff"/>
-    <!-- 白色下巴/嘴部（暖米色，白底可区分） -->
+    <!-- 白色下巴/嘴部（暖米色） -->
     <rect x="11" y="13" width="10" height="1" fill="#f3e6d3"/>
     <rect x="10" y="14" width="12" height="2" fill="#f3e6d3"/>
     <rect x="9" y="16" width="14" height="3" fill="#f3e6d3"/>
@@ -44,6 +44,6 @@
     <rect x="23" y="14" width="2" height="2" fill="#ffb3a7" opacity="0.85"/>
   </g>
 
-  <!-- 右上角对勾：橙色（白底可见） -->
-  <path d="M706 300 l84 84 l168 -196" stroke="#FF9A3C" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- 右上角对勾：绿色（完成语义，与常见图标一致） -->
+  <path d="M712 320 l84 84 l168 -196" stroke="#22c55e" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>
