@@ -73,17 +73,20 @@ echo "[2/4] Syncing to iOS project..."
 fix_podfile_platform
 npx cap sync ios
 
-# 4. 编译原生工程（ad-hoc 签名）
-#    注意：新版本 Xcode 下 CODE_SIGNING_ALLOWED=NO 会导致
-#    "bundle format unrecognized, invalid, or unsuitable" 构建失败，
-#    因此改用 ad-hoc 身份（-）签名编译，产物可直接被 AltStore 重签安装。
-echo "[3/4] Building native app (ad-hoc signed)..."
+# 4. 编译原生工程（编译时不签名，编译后用 codesign CLI 手动 ad-hoc 签名）
+#    注意（Xcode 26 / iOS SDK 26）：
+#    - CODE_SIGNING_ALLOWED=NO 单独使用会报 "bundle format unrecognized"，
+#      需要同时 VALIDATE_PRODUCT=NO 跳过产品校验。
+#    - xcodebuild 禁止用 CODE_SIGN_IDENTITY="-" (ad-hoc) 构建 iOS，
+#      报 "Ad Hoc code signing is not allowed with SDK"。
+#    因此：xcodebuild 不签名编译 + codesign 命令手动 ad-hoc 签名（CLI 不受限）。
+echo "[3/4] Building native app (unsigned)..."
 rm -rf "$BUILD_DIR"
 cd "$IOS_DIR"
 xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
   -sdk iphoneos -derivedDataPath "$BUILD_DIR/derived" \
-  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="-" \
-  CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=YES VALIDATE_PRODUCT=NO \
+  CODE_SIGN_STYLE=Manual CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY="" VALIDATE_PRODUCT=NO \
   build 2>&1 | tail -15
 
 APP_PATH="$BUILD_DIR/derived/Build/Products/Release-iphoneos/App.app"
