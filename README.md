@@ -44,7 +44,7 @@ TinyDo 为**未签名应用**，macOS 首次打开可能提示「无法验证开
 > ```
 >
 > **覆盖安装不会丢失数据**：任务数据和同步配置保存在
-> `~/Library/Application Support/TinyDo/`（应用外部），重装后原样保留、无需重新配置。
+> `~/Library/Application Support/tinydo/`（应用外部），重装后原样保留、无需重新配置。
 >
 > 完整注意事项见 [docs/INSTALL.md](docs/INSTALL.md)。
 

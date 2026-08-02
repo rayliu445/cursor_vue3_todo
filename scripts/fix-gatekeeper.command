@@ -50,7 +50,7 @@ echo ""
 # 删除旧版本（只删除应用本体，不动用户数据）
 if [ -d "$APP_DST" ]; then
   echo "   ⚠️  检测到已安装版本，正在覆盖..."
-  echo "   ✅ 您的任务数据与同步配置会保留（位于 ~/Library/Application Support/TinyDo）"
+  echo "   ✅ 您的任务数据与同步配置会保留（位于 ~/Library/Application Support/tinydo）"
   rm -rf "$APP_DST"
 fi
 

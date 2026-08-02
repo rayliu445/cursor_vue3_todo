@@ -63,7 +63,7 @@ project-root/
 - 可通过外部 `config.json` 文件控制日志行为：
   - `enableLogging`: 是否启用日志 (true/false)
   - `logLevel`: 日志级别 (ERROR, WARN, INFO, DEBUG)
-- 日志文件保存在: `~/Library/Application Support/TinyDo/logs/app-[YYYY-MM-DD].log`
+- 日志文件保存在: `~/Library/Application Support/tinydo/logs/app-[YYYY-MM-DD].log`
 
 ## 重新构建说明
 

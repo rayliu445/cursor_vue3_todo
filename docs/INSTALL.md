@@ -94,7 +94,7 @@ xattr -cr /Applications/TinyDo.app && open /Applications/TinyDo.app
 
 **不会。** 再次安装（覆盖安装）只会替换 `/Applications/TinyDo.app` 应用本体，
 您的**任务数据、同步配置、主题设置**都保存在应用数据目录
-`~/Library/Application Support/TinyDo/`（位于应用外部，脚本不会动它），所以：
+`~/Library/Application Support/tinydo/`（位于应用外部，脚本不会动它），所以：
 
 - ✅ 覆盖安装后数据原样保留，**不需要重新配置**同步/主题
 - ✅ 任务列表、历史记录完全不变

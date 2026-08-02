@@ -10,7 +10,7 @@ const configPath = path.join(app.getAppPath(), 'config.json')
 let appConfig = {
   enableLogging: true,
   logLevel: 'INFO',
-  userDataPath: '~/Library/Application Support/TinyDo',
+  userDataPath: '~/Library/Application Support/tinydo',
 }
 
 if (fs.existsSync(configPath)) {

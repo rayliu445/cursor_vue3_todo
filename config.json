@@ -1,5 +1,5 @@
 {
   "enableLogging": true,
   "logLevel": "INFO",
-  "userDataPath": "~/Library/Application Support/TinyDo"
+  "userDataPath": "~/Library/Application Support/tinydo"
 }

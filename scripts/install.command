@@ -35,7 +35,7 @@ fi
 # 检查是否已安装
 if [ -d "$INSTALL_PATH" ]; then
   echo "⚠️  检测到已安装的版本，正在覆盖..."
-  echo "   ✅ 您的任务数据与同步配置会保留（位于 ~/Library/Application Support/TinyDo）"
+  echo "   ✅ 您的任务数据与同步配置会保留（位于 ~/Library/Application Support/tinydo）"
   rm -rf "$INSTALL_PATH"
 fi
 
