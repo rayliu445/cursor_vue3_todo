@@ -223,16 +223,16 @@ interface PrimaryNavItem {
   path: string
 }
 
-// 左列（一级图标）：日历 / 四象限 / 已完成（“今天”由中列切换）
+// 左列（一级图标）：日历 / 四象限（“今天”由中列切换，“已完成”通过搜索查找）
 const primaryNavItems: PrimaryNavItem[] = [
   { id: 'calendar', label: '日历', icon: 'calendar', path: '/calendar' },
   { id: 'matrix', label: '四象限', icon: 'matrix', path: '/matrix' },
-  { id: 'completed', label: '已完成', icon: 'completed', path: '/completed' },
 ]
 
-// 添加任务：跳到收集箱并聚焦添加输入框
+// 添加任务：跳到收集箱、清空搜索（避免残留关键词过滤新任务）、聚焦添加输入框
 function handleAddTask() {
   router.push('/')
+  setSearch('')
   window.dispatchEvent(new CustomEvent('tinydo-focus-add'))
 }
 
