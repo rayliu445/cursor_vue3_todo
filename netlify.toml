@@ -1,0 +1,20 @@
+# Netlify 部署：浏览器访问七牛云 API 的 CORS 代理
+# 七牛 rs/up/下载接口均不返回 CORS 头，浏览器端统一走同源路径转发
+
+[[redirects]]
+  from = "/qiniu-rs/*"
+  to = "https://rs.qiniu.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/qiniu-up/*"
+  to = "https://up.qiniup.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/qiniu-dl/*"
+  to = "http://iovip.qbox.me/:splat"
+  status = 200
+  force = true

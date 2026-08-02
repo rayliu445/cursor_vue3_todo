@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/qiniu-rs/:path*",
+      "destination": "https://rs.qiniu.com/:path*"
+    },
+    {
+      "source": "/qiniu-up/:path*",
+      "destination": "https://up.qiniup.com/:path*"
+    },
+    {
+      "source": "/qiniu-dl/:path*",
+      "destination": "http://iovip.qbox.me/:path*"
+    }
+  ]
+}

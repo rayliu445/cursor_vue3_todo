@@ -389,6 +389,13 @@ const { searchQuery } = useGlobalSearch()
 
 // ============ 任务过滤 ============
 const filteredTodos = computed(() => {
+  // 搜索优先：有搜索词时在全量任务（含已完成）中搜索，便于找回已完成的任务
+  const query = searchQuery.value.toLowerCase().trim()
+  if (query) {
+    return todos.value.filter(t => t.title.toLowerCase().includes(query))
+  }
+
+  // 无搜索时按视图过滤
   let list = todos.value
 
   // 按视图过滤
@@ -413,11 +420,6 @@ const filteredTodos = computed(() => {
   }
 
   // 搜索过滤
-  const query = searchQuery.value.toLowerCase().trim()
-  if (query) {
-    list = list.filter(t => t.title.toLowerCase().includes(query))
-  }
-
   return list
 })
 

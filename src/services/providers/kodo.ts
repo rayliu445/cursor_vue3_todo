@@ -14,6 +14,25 @@ import type { CloudProvider } from './types'
 
 const DEFAULT_REGION = 'cn-east-1'
 
+// ============ 环境判断：Electron 直连，浏览器走同源代理解决 CORS ============
+// 七牛 rs/up/下载 API 均不返回 CORS 头，浏览器直连会被拦截。
+// - Electron 渲染进程已通过 webSecurity:false 直连七牛
+// - 浏览器走 Vite dev proxy / 部署平台代理（vercel.json / netlify.toml）
+function isElectronEnv(): boolean {
+  if (typeof window === 'undefined') return false
+  if ((window as any).electronAPI) return true
+  if (typeof location !== 'undefined' && location.protocol === 'file:') return true
+  return false
+}
+
+const IS_ELECTRON = isElectronEnv()
+/** 七牛 RS 管理 API 基址 */
+const RS_API_BASE = IS_ELECTRON ? 'https://rs.qiniu.com' : '/qiniu-rs'
+/** 七牛上传 API 基址 */
+const UP_API_BASE = IS_ELECTRON ? 'https://up.qiniup.com' : '/qiniu-up'
+/** 下载链接 host 前缀：浏览器把绝对 url 改写为同源代理 /qiniu-dl */
+const DL_HOST_PREFIX = IS_ELECTRON ? '' : '/qiniu-dl'
+
 // ============ 工具函数 ============
 
 /** URL 安全的 Base64 编码（Qiniu 规范，保留 = 填充） */
@@ -125,7 +144,7 @@ export class KodoProvider implements CloudProvider {
     const token = await buildAccessToken(path, this.config.accessKeyId, this.config.accessKeySecret)
     let res: Response
     try {
-      res = await fetch(`https://rs.qiniu.com${path}`, {
+      res = await fetch(`${RS_API_BASE}${path}`, {
         headers: { Authorization: token },
       })
     } catch (err: any) {
@@ -173,7 +192,7 @@ export class KodoProvider implements CloudProvider {
     try {
       const getPath = `/get/${this.entryURI}`
       const token = await buildAccessToken(getPath, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`https://rs.qiniu.com${getPath}`, {
+      const res = await fetch(`${RS_API_BASE}${getPath}`, {
         method: 'GET',
         headers: { Authorization: token },
       })
@@ -183,7 +202,11 @@ export class KodoProvider implements CloudProvider {
       // 真正的文件内容需要再请求 meta.url 获取，不能直接把 JSON 当文件内容。
       const meta = await res.json().catch(() => null)
       if (!meta || typeof meta.url !== 'string') return null
-      const dlRes = await fetch(meta.url)
+      // 浏览器环境把绝对下载链接改写为同源代理路径，规避 iovip.qbox.me 无 CORS 头
+      const dlUrl = DL_HOST_PREFIX
+        ? meta.url.replace(/^https?:\/\/[^/]+/, DL_HOST_PREFIX)
+        : meta.url
+      const dlRes = await fetch(dlUrl)
       if (!dlRes.ok) return null
       return new Uint8Array(await dlRes.arrayBuffer())
     } catch (err) {
@@ -198,7 +221,7 @@ export class KodoProvider implements CloudProvider {
       const base64Data = btoa(String.fromCharCode(...data))
       const encodedKey = urlsafeBase64(this.objectKey)
 
-      const res = await fetch(`https://up.qiniup.com/putb64/${data.length}/key/${encodedKey}`, {
+      const res = await fetch(`${UP_API_BASE}/putb64/${data.length}/key/${encodedKey}`, {
         method: 'POST',
         headers: {
           Authorization: `UpToken ${uploadToken}`,
@@ -220,7 +243,7 @@ export class KodoProvider implements CloudProvider {
     try {
       const delPath = `/delete/${this.entryURI}`
       const token = await buildAccessToken(delPath, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`https://rs.qiniu.com${delPath}`, {
+      const res = await fetch(`${RS_API_BASE}${delPath}`, {
         method: 'POST',
         headers: { Authorization: token },
       })
@@ -235,7 +258,7 @@ export class KodoProvider implements CloudProvider {
     try {
       const statPath = `/stat/${this.entryURI}`
       const token = await buildAccessToken(statPath, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`https://rs.qiniu.com${statPath}`, {
+      const res = await fetch(`${RS_API_BASE}${statPath}`, {
         method: 'GET',
         headers: { Authorization: token },
       })
@@ -250,7 +273,7 @@ export class KodoProvider implements CloudProvider {
       try {
         const statPath = `/stat/${this.entryURI}`
         const token = await buildAccessToken(statPath, this.config.accessKeyId, this.config.accessKeySecret)
-        const res = await fetch(`https://rs.qiniu.com${statPath}`, {
+        const res = await fetch(`${RS_API_BASE}${statPath}`, {
           method: 'GET',
           headers: { Authorization: token },
         })
