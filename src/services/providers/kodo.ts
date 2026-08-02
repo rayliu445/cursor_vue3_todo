@@ -104,30 +104,69 @@ export class KodoProvider implements CloudProvider {
   // ============ CloudProvider 接口实现 ============
 
   async initialize(): Promise<void> {
+    // 注意：这里必须真实连通并校验通过才算成功。
+    // 之前 catch 里会吞掉网络错误（断网/CORS/DNS）并置 _initialized=true，
+    // 导致"测试连接"在假配置/无法访问时也显示成功。现在一律如实上报，
+    // 并且区分不同失败原因，给出可操作的错误提示。
+
+    /** 解析七牛 API 返回的错误详情 */
+    function parseQiniuError(bodyText: string): string {
+      if (!bodyText) return ''
+      try {
+        const parsed = JSON.parse(bodyText)
+        if (parsed && typeof parsed.error === 'string') return parsed.error
+        return bodyText
+      } catch {
+        return bodyText
+      }
+    }
+
+    const path = '/buckets'
+    const token = await buildAccessToken(path, this.config.accessKeyId, this.config.accessKeySecret)
+    let res: Response
     try {
-      const path = '/buckets'
-      const token = await buildAccessToken(path, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`https://rs.qiniu.com${path}`, {
+      res = await fetch(`https://rs.qiniu.com${path}`, {
         headers: { Authorization: token },
       })
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        console.error('[Kodo] API 响应:', res.status, body)
-        if (res.status === 401) {
-          throw new Error(`认证失败 (${body || 'BadToken'})，请检查 AK/SK 是否正确`)
-        }
-        throw new Error(`连接失败: ${res.status}`)
-      }
-      const buckets = await res.json()
-      if (!buckets.includes(this.config.bucket)) {
-        throw new Error(`Bucket "${this.config.bucket}" 不存在`)
-      }
-      this._initialized = true
     } catch (err: any) {
-      if (err.message?.includes('认证') || err.message?.includes('不存在')) throw err
-      console.error('[Kodo] Initialize warning:', err)
-      this._initialized = true
+      // 网络层错误：区分离线 / 一般网络错误 / CORS
+      console.error('[Kodo] 网络请求失败:', err)
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new Error('当前处于离线状态，无法连接七牛云，请检查网络连接')
+      }
+      const detail = err && err.message ? `（${err.message}）` : ''
+      throw new Error(`无法连接七牛云，请检查网络或稍后重试${detail}`)
     }
+
+    // HTTP 层错误：解析七牛返回的具体错误信息，区分不同原因
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '')
+      const qiniuMsg = parseQiniuError(bodyText)
+      console.error('[Kodo] API 响应:', res.status, qiniuMsg)
+      const suffix = qiniuMsg ? `（${qiniuMsg}）` : ''
+      switch (res.status) {
+        case 401:
+          throw new Error(`认证失败${suffix}，请检查 AccessKey ID / AccessKey Secret 是否正确`)
+        case 403:
+          throw new Error(`权限不足${suffix}，请确认该密钥有对应空间（bucket）的访问权限`)
+        case 400:
+          throw new Error(`请求无效${suffix}，请检查配置是否正确`)
+        case 404:
+          throw new Error(`接口不存在${suffix}`)
+        default:
+          throw new Error(`连接失败 (HTTP ${res.status})${suffix}`)
+      }
+    }
+
+    // 鉴权通过但 bucket 不存在
+    const buckets = await res.json().catch(() => [] as string[])
+    if (!Array.isArray(buckets) || !buckets.includes(this.config.bucket)) {
+      const available = Array.isArray(buckets) && buckets.length > 0
+        ? `（可用空间：${buckets.slice(0, 5).join('、')}${buckets.length > 5 ? '…' : ''}）`
+        : ''
+      throw new Error(`Bucket "${this.config.bucket}" 不存在，请检查名称${available}`)
+    }
+    this._initialized = true
   }
 
   async read(path: string): Promise<Uint8Array | null> {

@@ -29,6 +29,7 @@ export interface CRDTTodo {
   list?: string
   isAllDay?: boolean
   completedTime?: string
+  updatedAt?: string
 }
 
 export interface CRDTList {

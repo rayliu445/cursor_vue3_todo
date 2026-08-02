@@ -10,9 +10,8 @@
 
 import type { CloudProvider, SyncConfig, SyncState, SyncResult } from './providers/types'
 import { DEFAULT_SYNC_CONFIG } from './providers/types'
-import { getDataAccess } from './data-access'
-import { mergeDoc, getCurrentDoc, loadDoc, saveDoc, getDocSnapshot } from './crdt-doc'
-import type { CRDTDoc } from './crdt-doc'
+import { getDataAccess, type Todo } from './data-access'
+import { fromJS, loadDoc, saveDoc, getDocSnapshot } from './crdt-doc'
 
 export class SyncEngine {
   private provider: CloudProvider | null = null
@@ -127,31 +126,31 @@ export class SyncEngine {
     this.notifyState()
 
     try {
-      // 1. 先将本地变更写入云
-      const doc = getCurrentDoc()
-      if (doc) {
-        const data = saveDoc(doc)
-        await this.provider.write(this.CLOUD_FILE, data)
-      }
+      const dataAccess = getDataAccess()
 
-      // 2. 从云读取并合并
+      // 1. 本地数据（SQLite 是数据源）
+      const localTodos = dataAccess.getTodos()
+
+      // 2. 云端数据（CRDT 文档）
+      let cloudTodos: Todo[] = []
       const cloudData = await this.provider.read(this.CLOUD_FILE)
-      let changesIncoming = 0
-
-      if (cloudData && doc) {
+      if (cloudData) {
         const cloudDoc = loadDoc(cloudData)
-        const beforeSnap = getDocSnapshot(doc)
-        const beforeCount = Object.keys(beforeSnap.todos).length
-
-        // 合并云端变更到本地
-        const mergedDoc = mergeDoc(doc, cloudDoc)
-        const afterSnap = getDocSnapshot(mergedDoc)
-        changesIncoming = Object.keys(afterSnap.todos).length - beforeCount
-
-        // 保存合并后的文档
-        const dataAccess = getDataAccess()
-        await dataAccess.save()
+        const snap = getDocSnapshot(cloudDoc)
+        cloudTodos = Object.values(snap.todos) as Todo[]
       }
+
+      // 3. LWW 合并：updated_at 更晚者胜，各自独有的都保留
+      const mergedTodos = mergeTodosByUpdatedAt(localTodos, cloudTodos)
+      const changesIncoming = Math.max(0, mergedTodos.length - localTodos.length)
+
+      // 4. 合并结果写回本地 SQLite，并通知 UI 刷新
+      dataAccess.replaceAll(mergedTodos)
+      await dataAccess.save()
+
+      // 5. 合并结果上传云端（云端始终是权威副本）
+      const doc = fromJS({ todos: mergedTodos })
+      await this.provider.write(this.CLOUD_FILE, saveDoc(doc))
 
       // 更新状态
       this.state.status = 'idle'
@@ -251,17 +250,22 @@ export class SyncEngine {
     if (!this.provider) return
 
     try {
+      const dataAccess = getDataAccess()
+      const localTodos = dataAccess.getTodos()
+
+      let cloudTodos: Todo[] = []
       const cloudData = await this.provider.read(this.CLOUD_FILE)
       if (cloudData) {
-        const doc = getCurrentDoc()
-        if (doc) {
-          const cloudDoc = loadDoc(cloudData)
-          mergeDoc(doc, cloudDoc)
-          const dataAccess = getDataAccess()
-          await dataAccess.save()
-          console.log('[SyncEngine] Initial sync completed')
-        }
+        const cloudDoc = loadDoc(cloudData)
+        const snap = getDocSnapshot(cloudDoc)
+        cloudTodos = Object.values(snap.todos) as Todo[]
       }
+
+      // 与云端做 LWW 合并后写回本地（拉取其他端的数据）
+      const mergedTodos = mergeTodosByUpdatedAt(localTodos, cloudTodos)
+      dataAccess.replaceAll(mergedTodos)
+      await dataAccess.save()
+      console.log('[SyncEngine] Initial sync completed, todos:', mergedTodos.length)
     } catch (err) {
       console.warn('[SyncEngine] Initial sync failed (first time?):', err)
     }
@@ -300,6 +304,32 @@ export class SyncEngine {
   private notifyState(): void {
     this.stateListeners.forEach(cb => cb(this.state))
   }
+}
+
+// ============ 多端合并工具 ============
+
+/**
+ * LWW（Last-Write-Wins，后写覆盖）合并：
+ * - 只在一端存在的任务：直接保留（合并）
+ * - 两端都存在的同一任务：updated_at 更晚者胜（后写覆盖）
+ *
+ * ISO 时间字符串可直接按字典序比较。
+ */
+function mergeTodosByUpdatedAt<T extends { id: string; updatedAt?: string }>(
+  local: T[],
+  cloud: T[],
+): T[] {
+  const byId = new Map<string, T>()
+  for (const t of local) byId.set(t.id, t)
+  for (const t of cloud) {
+    const existing = byId.get(t.id)
+    if (!existing) {
+      byId.set(t.id, t)
+    } else if ((t.updatedAt || '') > (existing.updatedAt || '')) {
+      byId.set(t.id, t)
+    }
+  }
+  return Array.from(byId.values())
 }
 
 // ============ 单例 ============

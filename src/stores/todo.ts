@@ -7,6 +7,9 @@ import { getSyncEngine } from '../services/sync-engine'
 // Todo类型定义（保持向前兼容）
 export interface Todo extends CRDTTodo {}
 
+// 数据层变化订阅标记（避免重复订阅）
+let syncRefreshSubscribed = false
+
 export const useTodoStore = defineStore('todo', () => {
   // 状态
   const todos = ref<Todo[]>([])
@@ -35,7 +38,15 @@ export const useTodoStore = defineStore('todo', () => {
     error.value = null
     
     try {
-      refreshTodos()
+      const da = getOrInitDataAccess()
+      if (da) {
+        // 订阅数据层变化：云端同步拉取 / 数据导入后自动刷新界面
+        if (!syncRefreshSubscribed) {
+          syncRefreshSubscribed = true
+          da.onChange(() => { refreshTodos() })
+        }
+        refreshTodos()
+      }
     } catch (err) {
       console.error('获取待办事项失败:', err)
       error.value = err instanceof Error ? err.message : '获取待办事项失败'

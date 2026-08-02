@@ -20,6 +20,7 @@ export interface Todo {
   list?: string
   isAllDay?: boolean
   completedTime?: string
+  updatedAt?: string
 }
 
 export interface DataAccess {
@@ -28,6 +29,7 @@ export interface DataAccess {
   getTodoById(id: string): Todo | undefined
   addTodo(todo: Partial<Todo> & { title: string }): Todo
   bulkAddTodos(todos: Partial<Todo>[]): Todo[]
+  replaceAll(todos: Todo[]): void
   updateTodo(id: string, updates: Partial<Todo>): void
   removeTodo(id: string): void
   toggleTodo(id: string): void
@@ -95,6 +97,20 @@ class SqliteDataAccess implements DataAccess {
     })))
     this.notify()
     return rows.map(rowToTodo)
+  }
+
+  /**
+   * 整体替换所有 todo（同步合并后写回）
+   * 保留每个 todo 的 updatedAt，供多端 LWW 冲突解决使用
+   */
+  replaceAll(todos: Todo[]): void {
+    this.db.replaceAllTodos(todos.map(t => ({
+      id: t.id, title: t.title, completed: t.completed, priority: t.priority,
+      dueDate: t.dueDate, startDate: t.startDate, content: t.content,
+      tags: t.tags, list: t.list, isAllDay: t.isAllDay,
+      completedTime: t.completedTime, createdAt: t.createdAt, updatedAt: t.updatedAt,
+    })))
+    this.notify()
   }
 
   updateTodo(id: string, updates: Partial<Todo>): void {
@@ -231,6 +247,7 @@ function rowToTodo(row: any): Todo {
     content: row.content ?? undefined, tags: JSON.parse(row.tags || '[]'),
     list: row.list_name ?? undefined, isAllDay: row.is_all_day === 1,
     completedTime: row.completed_time ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   }
 }
 

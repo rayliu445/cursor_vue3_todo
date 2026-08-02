@@ -40,6 +40,7 @@ export interface TodoInput {
   isAllDay?: boolean
   completedTime?: string
   createdAt?: string
+  updatedAt?: string
 }
 
 // ============ Schema ============
@@ -174,7 +175,7 @@ export class TodoDatabase {
       is_all_day: input.isAllDay ? 1 : 0,
       completed_time: input.completedTime ?? null,
       created_at: input.createdAt ?? now,
-      updated_at: now,
+      updated_at: input.updatedAt ?? now,
     }
     this.db.run(
       `INSERT INTO todos (id, title, completed, priority, due_date, start_date, content, tags, list_name, is_all_day, completed_time, created_at, updated_at)
@@ -189,6 +190,16 @@ export class TodoDatabase {
   /** 批量添加 */
   bulkAddTodos(inputs: TodoInput[]): TodoRow[] {
     return inputs.map(input => this.addTodo(input))
+  }
+
+  /**
+   * 整体替换所有 todo（用于同步合并后写回）
+   * 保留每个 todo 的 updated_at，避免 LWW 冲突解决被破坏
+   */
+  replaceAllTodos(todos: Array<TodoInput & { id: string }>): TodoRow[] {
+    if (!this.db) throw new Error('Database not initialized')
+    this.db.run('DELETE FROM todos')
+    return this.bulkAddTodos(todos)
   }
 
   /** 更新 Todo */
