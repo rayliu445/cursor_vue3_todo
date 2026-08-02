@@ -19,8 +19,43 @@
       </div>
     </div>
 
-    <!-- ===== 添加任务条 (固定于头部下方) ===== -->
+    <!-- ===== 搜索框（仅搜索视图，可搜所有已完成/未完成） ===== -->
     <div
+      v-if="currentView === 'search'"
+      class="px-6 py-3 border-b flex-shrink-0"
+      :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
+    >
+      <div class="relative">
+        <input
+          ref="searchInputRef"
+          v-model="searchQuery"
+          type="text"
+          placeholder="搜索所有任务（含已完成）..."
+          class="w-full pl-9 pr-9 py-2 text-sm rounded-lg outline-none transition-all duration-150"
+          :style="{
+            backgroundColor: 'var(--bg-app)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--color-accent)',
+          }"
+        />
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center" :style="{ color: 'var(--text-tertiary)' }">
+          <AppIcon name="search" :size="14" />
+        </span>
+        <button
+          v-if="searchQuery"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-full cursor-pointer"
+          :style="{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-hover)' }"
+          title="清除搜索"
+          @click="clearSearch"
+        >
+          <AppIcon name="delete" :size="12" />
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== 添加任务条 (固定于头部下方，搜索视图不显示) ===== -->
+    <div
+      v-if="currentView !== 'search'"
       class="px-6 py-3 border-b flex-shrink-0"
       :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
     >
@@ -318,6 +353,7 @@ const currentView = computed(() => {
   const view = route.query.view as string | undefined
   if (view === 'today') return 'today'
   if (view === 'next7') return 'next7'
+  if (view === 'search') return 'search'
   return 'inbox'
 })
 
@@ -325,6 +361,7 @@ const pageTitle = computed(() => {
   switch (currentView.value) {
     case 'today': return '今天'
     case 'next7': return '最近7天'
+    case 'search': return '搜索'
     default: return '收集箱'
   }
 })
@@ -333,6 +370,7 @@ const emptyMessage = computed(() => {
   switch (currentView.value) {
     case 'today': return '今天没有待办任务'
     case 'next7': return '最近7天没有待办任务'
+    case 'search': return '输入关键词搜索所有任务（含已完成）'
     default: return '还没有任务，添加一个吧'
   }
 })
@@ -353,11 +391,21 @@ function focusInput() {
   addInputRef.value?.focus()
 }
 
-// 监听左列“添加任务”按钮：跳转到本页后自动聚焦输入框
+// 监听左列按钮：添加任务聚焦输入框 / 搜索聚焦搜索框
 onMounted(() => {
   window.addEventListener('tinydo-focus-add', () => {
     nextTick(() => addInputRef.value?.focus())
   })
+  window.addEventListener('tinydo-focus-search', () => {
+    nextTick(() => searchInputRef.value?.focus())
+  })
+})
+
+// 进入搜索视图时确保自动聚焦搜索框（不依赖事件时序）
+watch(() => route.query.view, (v) => {
+  if (v === 'search') {
+    nextTick(() => nextTick(() => searchInputRef.value?.focus()))
+  }
 })
 
 const priorityOptions = [
@@ -385,17 +433,24 @@ function getPriorityBtnStyle(value: number, isSelected?: boolean) {
 
 // ============ 搜索（从侧边栏共享） ============
 import { useGlobalSearch } from '../stores/search'
-const { searchQuery } = useGlobalSearch()
+const { searchQuery, setSearch } = useGlobalSearch()
+const searchInputRef = ref<HTMLInputElement | null>(null)
+
+function clearSearch() {
+  setSearch('')
+  nextTick(() => searchInputRef.value?.focus())
+}
 
 // ============ 任务过滤 ============
 const filteredTodos = computed(() => {
-  // 搜索优先：有搜索词时在全量任务（含已完成）中搜索，便于找回已完成的任务
-  const query = searchQuery.value.toLowerCase().trim()
-  if (query) {
+  // 搜索视图：全量搜索（含已完成）
+  if (currentView.value === 'search') {
+    const query = searchQuery.value.toLowerCase().trim()
+    if (!query) return []
     return todos.value.filter(t => t.title.toLowerCase().includes(query))
   }
 
-  // 无搜索时按视图过滤
+  // 其他视图按视图过滤（不受搜索词影响）
   let list = todos.value
 
   // 按视图过滤

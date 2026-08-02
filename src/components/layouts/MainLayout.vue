@@ -2,9 +2,9 @@
   <div class="flex h-screen overflow-hidden" :style="{ backgroundColor: 'var(--bg-app)' }">
     <!-- ============ 左侧边栏 ============ -->
     <aside
-      class="flex-shrink-0 flex flex-col border-r select-none"
+      class="flex-shrink-0 flex flex-col border-r select-none transition-all duration-150"
       :style="{
-        width: 'var(--sidebar-width)',
+        width: showSecondaryNav ? 'var(--sidebar-width)' : '56px',
         backgroundColor: 'var(--bg-sidebar)',
         borderColor: 'var(--border-color)',
       }"
@@ -40,7 +40,7 @@
             <rect x="21" y="17" width="2" height="2" rx="1" fill="#ffb5b5" opacity="0.6"/>
           </svg>
         </div>
-        <div class="flex-1 min-w-0">
+        <div v-if="showSecondaryNav" class="flex-1 min-w-0">
           <div class="text-sm font-semibold truncate" :style="{ color: 'var(--text-primary)' }">
             TinyDo
           </div>
@@ -76,53 +76,19 @@
           >
             <AppIcon :name="item.icon" :size="20" :color="isActive(item) ? 'var(--color-accent)' : 'var(--text-secondary)'" />
           </button>
-          <!-- 搜索（四象限下）：展开中列搜索框，可搜所有已完成/未完成 -->
+          <!-- 搜索（四象限下）：进入搜索视图，可搜所有已完成/未完成 -->
           <button
             class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
-            :style="{ backgroundColor: searchActive ? 'var(--color-accent-light)' : 'transparent' }"
+            :style="{ backgroundColor: isSearchView ? 'var(--color-accent-light)' : 'transparent' }"
             title="搜索"
-            @click="toggleSearch"
+            @click="openSearch"
           >
-            <AppIcon name="search" :size="20" :color="searchActive ? 'var(--color-accent)' : 'var(--text-secondary)'" />
+            <AppIcon name="search" :size="20" :color="isSearchView ? 'var(--color-accent)' : 'var(--text-secondary)'" />
           </button>
         </nav>
 
-        <!-- 中列（二级）：搜索框 + 今天 / 最近7天 / 收集箱 -->
-        <nav class="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-          <!-- 搜索框（点击左列搜索按钮展开，可搜所有已完成/未完成） -->
-          <div v-if="searchActive" class="px-1 pb-1.5">
-            <div class="relative">
-              <input
-                ref="searchInputRef"
-                v-model="searchQuery"
-                type="text"
-                placeholder="搜索所有任务（含已完成）..."
-                class="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg transition-all duration-150 outline-none"
-                :style="{
-                  backgroundColor: 'var(--bg-app)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--color-accent)',
-                }"
-                @focus="searchFocused = true"
-                @blur="searchFocused = false"
-              />
-              <span
-                class="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center"
-                :style="{ color: searchFocused ? 'var(--text-secondary)' : 'var(--text-tertiary)' }"
-              >
-                <AppIcon name="search" :size="12" />
-              </span>
-              <button
-                v-if="searchQuery"
-                class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full cursor-pointer"
-                :style="{ color: 'var(--text-tertiary)' }"
-                title="清除搜索"
-                @click="clearSearch"
-              >
-                <AppIcon name="delete" :size="12" />
-              </button>
-            </div>
-          </div>
+        <!-- 中列（二级）：今天 / 最近7天 / 收集箱（仅任务列表视图显示，日历/四象限/搜索时隐藏） -->
+        <nav v-if="showSecondaryNav" class="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
           <div
             v-for="item in secondaryNavItems"
             :key="item.id"
@@ -172,7 +138,7 @@
           }"
         >
           <AppIcon name="settings" :size="18" :color="route.path === '/settings' ? 'var(--color-accent)' : 'var(--text-secondary)'" />
-          <span>设置</span>
+          <span v-if="showSecondaryNav">设置</span>
         </router-link>
       </div>
     </aside>
@@ -254,6 +220,24 @@ function handleAddTask() {
   window.dispatchEvent(new CustomEvent('tinydo-focus-add'))
 }
 
+// 是否搜索视图（/?view=search）
+const isSearchView = computed(() => route.path === '/' && route.query.view === 'search')
+
+// 中列是否显示：仅任务列表类视图（收集箱/今天/最近7天）；日历/四象限/搜索/设置时隐藏，左侧收窄为图标列
+const showSecondaryNav = computed(() => {
+  if (route.path !== '/') return false
+  const view = route.query.view as string | undefined
+  return view !== 'search'
+})
+
+// 打开搜索视图：中列隐藏，内容页顶部显示搜索框，可搜所有已完成/未完成
+function openSearch() {
+  router.push('/?view=search')
+  nextTick(() => {
+    window.dispatchEvent(new CustomEvent('tinydo-focus-search'))
+  })
+}
+
 // 中列（二级清单）：今天 / 最近7天 / 收集箱
 const secondaryNavItems = computed<NavItem[]>(() => [
   { id: 'today', label: '今天', path: '/?view=today', count: todayCount.value || '' },
@@ -297,31 +281,6 @@ function navigateTo(item: NavItem) {
 
 import { useGlobalSearch } from '../../stores/search'
 const { searchQuery, setSearch } = useGlobalSearch()
-const searchFocused = ref(false)
-const searchActive = ref(false)
-const searchInputRef = ref<HTMLInputElement | null>(null)
-
-// 点击左列搜索按钮：展开中列搜索框并聚焦（搜索含已完成/未完成）
-function toggleSearch() {
-  searchActive.value = !searchActive.value
-  if (searchActive.value) {
-    router.push('/')
-    nextTick(() => searchInputRef.value?.focus())
-  } else {
-    setSearch('')
-  }
-}
-
-// 清除搜索词（保持搜索框打开）
-function clearSearch() {
-  setSearch('')
-  nextTick(() => searchInputRef.value?.focus())
-}
-
-// 监听搜索输入变化
-watch(searchQuery, (val) => {
-  setSearch(val)
-})
 
 onMounted(() => {
   todoStore.fetchTodos()
