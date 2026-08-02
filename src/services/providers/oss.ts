@@ -4,7 +4,10 @@
  * 基于阿里云 OSS S3-compatible API 实现跨平台数据同步。
  * 使用 AccessKey + SecretKey 认证，无需 OAuth。
  *
- * 配置步骤详见 docs/aliyun-oss-guide.md
+ * 配置步骤与七牛云 Kodo 类似，参考 docs/qiniu-kodo-guide.md。
+ *
+ * 注意：当前版本未接入设置页，仅作为未来扩展预留。
+ * 接入方式参照 kodo.ts（实现 CloudProvider 接口并在设置页注册）。
  */
 
 import type { CloudProvider } from './types'

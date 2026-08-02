@@ -5,7 +5,9 @@
  * 适用于 Electron 桌面端和 Web 端。
  *
  * 使用前需要在 Google Cloud Console 创建 OAuth 2.0 桌面应用凭据。
- * 详见 docs/google-drive-integration.md
+ *
+ * 注意：当前版本未接入设置页，仅作为未来扩展预留。
+ * 接入方式参照 kodo.ts（实现 CloudProvider 接口并在设置页注册）。
  */
 
 import type { CloudProvider } from './types'
