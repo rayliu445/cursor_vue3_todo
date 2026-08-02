@@ -77,8 +77,49 @@
 
       <!-- 导航菜单 -->
       <nav class="flex-1 overflow-y-auto px-2 pt-1 pb-2 space-y-0.5">
+        <!-- 分组标题：我的清单 -->
         <div
-          v-for="item in navItems"
+          class="px-3 pt-2.5 pb-1 text-[11px] font-semibold tracking-wider select-none"
+          :style="{ color: 'var(--text-tertiary)' }"
+        >
+          我的清单
+        </div>
+        <!-- 二级导航项：收集箱 / 今天 / 最近7天 -->
+        <div
+          v-for="item in inboxNavItems"
+          :key="item.id"
+          class="relative flex items-center gap-3 pl-9 pr-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150"
+          :class="{
+            'font-medium': isActive(item),
+          }"
+          :style="getNavItemStyle(item)"
+          @click="navigateTo(item)"
+        >
+          <!-- 选中指示器 -->
+          <div
+            v-if="isActive(item)"
+            class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r sidebar-indicator"
+            :style="{ backgroundColor: 'var(--color-accent)' }"
+          />
+          <!-- 图标 -->
+          <span class="flex-shrink-0 flex items-center justify-center" :style="{ opacity: isActive(item) ? 1 : 0.6 }">
+            <AppIcon :name="item.id" :size="17" :color="isActive(item) ? 'var(--text-primary)' : 'var(--text-secondary)'" />
+          </span>
+          <!-- 标签 -->
+          <span class="flex-1 truncate">{{ item.label }}</span>
+          <!-- 数量 -->
+          <span
+            v-if="item.count !== undefined"
+            class="text-xs tabular-nums flex-shrink-0"
+            :style="{ color: 'var(--text-tertiary)' }"
+          >
+            {{ item.count }}
+          </span>
+        </div>
+
+        <!-- 一级导航项：日历 / 四象限 / 已完成 -->
+        <div
+          v-for="item in otherNavItems"
           :key="item.id"
           class="relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150"
           :class="{
@@ -187,10 +228,15 @@ interface NavItem {
   count?: number | string
 }
 
-const navItems = computed<NavItem[]>(() => [
+// 二级导航项：我的清单分组（收集箱 / 今天 / 最近7天）
+const inboxNavItems = computed<NavItem[]>(() => [
   { id: 'inbox', label: '收集箱', path: '/', count: allCount.value || '' },
   { id: 'today', label: '今天', path: '/?view=today', count: todayCount.value || '' },
   { id: 'next7', label: '最近7天', path: '/?view=next7', count: next7Count.value || '' },
+])
+
+// 一级导航项：日历 / 四象限 / 已完成
+const otherNavItems = computed<NavItem[]>(() => [
   { id: 'calendar', label: '日历', path: '/calendar' },
   { id: 'matrix', label: '四象限', path: '/matrix' },
   { id: 'completed', label: '已完成', path: '/completed', count: completedCount.value || '' },

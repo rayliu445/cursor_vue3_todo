@@ -65,6 +65,8 @@ export class SyncEngine {
     this.destroy()
 
     this.provider = provider
+    // 启用同步：连接成功后 scheduleWrite/syncNow/autoSync 才会真正执行
+    this.config.enabled = true
     await provider.initialize()
 
     // 首次同步：从云加载并合并
@@ -241,6 +243,7 @@ export class SyncEngine {
       this.provider.destroy()
       this.provider = null
     }
+    this.config.enabled = false
     this._initialized = false
   }
 
