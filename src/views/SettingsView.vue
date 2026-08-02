@@ -192,7 +192,7 @@
           <div class="text-sm mt-0.5 mb-4" :style="{ color: 'var(--text-secondary)' }">对标滴答清单的个人任务管理工具</div>
           <div class="inline-flex items-center gap-2 text-xs rounded-full px-4 py-1.5"
             :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }">
-            <span>v0.0.2</span>
+            <span>v{{ appVersion }}</span>
             <span class="w-1 h-1 rounded-full" :style="{ backgroundColor: 'var(--text-tertiary)' }"></span>
             <span>Vue 3 + SQLite</span>
           </div>
@@ -234,6 +234,9 @@ import AppIcon from '../components/icons/AppIcon.vue'
 
 const store = useSettingsStore()
 const activeTab = ref<'storage' | 'sync' | 'theme' | 'about'>('storage')
+
+// 版本号：由 vite.config.js 注入（读取自 package.json，随版本发布自动更新）
+const appVersion = __APP_VERSION__
 
 const tabs = [
   { id: 'storage' as const, label: '存储', icon: 'storage' },
