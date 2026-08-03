@@ -663,16 +663,18 @@ ipcMain.handle('download-and-install', async (event, downloadUrl) => {
     // ENOTDIR（rmSync 递归删除运行中的 app.asar 时文件系统竞争）。
     // 先把旧 app 原子重命名走（运行中的目录允许 rename，进程继续用旧 inode），
     // 再把新版复制到位，最后清理备份；复制失败则回滚恢复旧 app。
+    // 复制必须用 ditto：fs.cpSync 会把 app 内相对 symlink（Electron Framework
+    // 等）改写为绝对路径指向临时挂载点，卸载后 app 无法启动；ditto 保留原样。
     const staging = path.join(os.tmpdir(), `tinydo-staging-${Date.now()}`)
     const stagedApp = path.join(staging, 'TinyDo.app')
     fs.mkdirSync(staging, { recursive: true })
-    fs.cpSync(srcApp, stagedApp, { recursive: true }) // 先复制到 staging，缩短替换窗口
+    execSync(`ditto "${srcApp}" "${stagedApp}"`) // 先复制到 staging，缩短替换窗口
 
     const backup = path.join(os.tmpdir(), `tinydo-old-${Date.now()}.app`)
     let replaced = false
     try {
       if (fs.existsSync(target)) fs.renameSync(target, backup)
-      fs.cpSync(stagedApp, target, { recursive: true })
+      execSync(`ditto "${stagedApp}" "${target}"`)
       replaced = true
     } catch (err) {
       // 安装失败：回滚恢复旧 app
