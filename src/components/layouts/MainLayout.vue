@@ -82,23 +82,21 @@
           class="w-14 flex-shrink-0 flex flex-col items-center gap-1 py-2 border-r overflow-y-auto"
           :style="{ borderColor: 'var(--border-color)' }"
         >
-          <!-- 添加任务（第一列第一个）：动作按钮，非导航项，不保持选中态；
-               按下时背景高亮+图标变橙（与其他按钮选中效果一致），松开/离开即恢复 -->
+          <!-- 添加任务（第一列第一个）：与其他导航按钮一致的选中态逻辑——
+               点击后保持高亮（背景+橙色图标），点击其他按钮时高亮切换走 -->
           <button
             class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
             :style="{
-              backgroundColor: isAddPressed ? 'var(--color-accent-light)'
+              backgroundColor: isAddActive ? 'var(--color-accent-light)'
                 : isAddHovered ? 'var(--bg-hover)'
                 : 'transparent',
             }"
             title="添加任务"
             @click="handleAddTask"
-            @mousedown="isAddPressed = true"
-            @mouseup="isAddPressed = false"
             @mouseenter="isAddHovered = true"
-            @mouseleave="isAddHovered = false; isAddPressed = false"
+            @mouseleave="isAddHovered = false"
           >
-            <AppIcon name="add" :size="20" :color="isAddPressed ? 'var(--color-accent)' : 'var(--text-secondary)'" />
+            <AppIcon name="add" :size="20" :color="isAddActive ? 'var(--color-accent)' : 'var(--text-secondary)'" />
           </button>
           <button
             v-for="item in primaryNavItems"
@@ -170,6 +168,7 @@
             color: route.path === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)',
             backgroundColor: route.path === '/settings' ? 'var(--color-accent-light)' : 'transparent',
           }"
+          @click="isAddActive = false"
         >
           <AppIcon name="settings" :size="18" :color="route.path === '/settings' ? 'var(--color-accent)' : 'var(--text-secondary)'" />
           <span v-if="showSecondaryNav">设置</span>
@@ -200,8 +199,8 @@ const router = useRouter()
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 
-// 添加任务按钮交互状态（悬停浅色、按下高亮，均瞬时，不常驻）
-const isAddPressed = ref(false)
+// 添加任务按钮选中态（与其他导航按钮一致：点击保持高亮，点击其他按钮时切换走）
+const isAddActive = ref(false)
 const isAddHovered = ref(false)
 
 // 获取今天和最近7天的任务数量
@@ -253,6 +252,7 @@ const primaryNavItems: PrimaryNavItem[] = [
 
 // 添加任务：跳到收集箱、清空搜索（避免残留关键词过滤新任务）、聚焦添加输入框
 function handleAddTask() {
+  isAddActive.value = true
   router.push('/')
   setSearch('')
   window.dispatchEvent(new CustomEvent('tinydo-focus-add'))
@@ -270,6 +270,7 @@ const showSecondaryNav = computed(() => {
 
 // 打开搜索视图：中列隐藏，内容页顶部显示搜索框，可搜所有已完成/未完成
 function openSearch() {
+  isAddActive.value = false
   router.push('/?view=search')
   nextTick(() => {
     window.dispatchEvent(new CustomEvent('tinydo-focus-search'))
@@ -306,6 +307,7 @@ function getNavItemStyle(item: NavItem) {
 }
 
 function navigateTo(item: NavItem) {
+  isAddActive.value = false
   if (item.id === 'inbox') {
     router.push('/')
   } else if (item.id === 'today') {
