@@ -280,10 +280,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSettingsStore } from '../stores/settings'
 import { themeMode as tm, setThemeMode } from '../stores/theme'
 import AppIcon from '../components/icons/AppIcon.vue'
 
+const router = useRouter()
 const store = useSettingsStore()
 const activeTab = ref<'storage' | 'sync' | 'theme' | 'about'>('storage')
 
@@ -400,18 +402,8 @@ async function exportData() {
   a.download = 'todo-backup-' + new Date().toISOString().slice(0, 10) + '.json'
   a.click(); URL.revokeObjectURL(a.href)
 }
-async function importData() {
-  const input = document.createElement('input')
-  input.type = 'file'; input.accept = '.json'
-  input.onchange = async () => {
-    const file = input.files?.[0]
-    if (!file) return
-    try {
-      const { getDataAccess } = await import('../services/data-access')
-      getDataAccess().importJSON(await file.text())
-      alert('导入成功！刷新页面查看。')
-    } catch { alert('导入失败，请检查文件格式。') }
-  }
-  input.click()
+// 导入数据：跳转到完整导入页（支持滴答清单 CSV / JSON 格式预览导入）
+function importData() {
+  router.push('/import')
 }
 </script>
