@@ -151,6 +151,16 @@
             >
               ↳
             </span>
+            <!-- 折叠按钮（父任务有关联子任务时显示） -->
+            <button
+              v-if="hasChildren(todo)"
+              class="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded cursor-pointer"
+              :style="{ color: 'var(--text-tertiary)' }"
+              :title="expandedParents.has(todo.id) ? '收起子任务' : '展开子任务'"
+              @click.stop="toggleExpand(todo.id)"
+            >
+              {{ expandedParents.has(todo.id) ? '▼' : '▶' }}
+            </button>
             <!-- 复选框 -->
             <input
               type="checkbox"
@@ -343,13 +353,39 @@ function clearSearch() {
   nextTick(() => searchInputRef.value?.focus())
 }
 
+// ============ 子任务折叠 ============
+const expandedParents = ref<Set<string>>(new Set())
+
+// 任务是否有关联子任务（决定是否显示折叠按钮）
+function hasChildren(todo: any): boolean {
+  return todos.value.some(t => t.parentId === todo.id)
+}
+
+function toggleExpand(id: string) {
+  const next = new Set(expandedParents.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  expandedParents.value = next
+}
+
+// 折叠过滤：父任务在列表中且未展开时，隐藏其子任务；
+// 父任务不在列表（孤立子任务）时始终显示。
+function applyCollapse<T extends { id: string; parentId?: string }>(sorted: T[]): T[] {
+  return sorted.filter(t => {
+    if (!t.parentId) return true
+    const parentInList = sorted.some(p => p.id === t.parentId)
+    if (!parentInList) return true
+    return expandedParents.value.has(t.parentId)
+  })
+}
+
 // ============ 任务过滤 ============
 const filteredTodos = computed(() => {
   // 搜索视图：全量搜索（含已完成），并按父子层级排序
   if (currentView.value === 'search') {
     const query = searchQuery.value.toLowerCase().trim()
     if (!query) return []
-    return sortWithHierarchy(todos.value.filter(t => t.title.toLowerCase().includes(query)))
+    return applyCollapse(sortWithHierarchy(todos.value.filter(t => t.title.toLowerCase().includes(query))))
   }
 
   // 其他视图按视图过滤（不受搜索词影响）
@@ -376,8 +412,8 @@ const filteredTodos = computed(() => {
       list = list.filter(t => !t.completed)
   }
 
-  // 层级排序：父任务在前，子任务紧跟其后
-  return sortWithHierarchy(list)
+  // 层级排序 + 折叠过滤：父任务在前，子任务紧跟其后（未展开时隐藏）
+  return applyCollapse(sortWithHierarchy(list))
 })
 
 // ============ 操作 ============

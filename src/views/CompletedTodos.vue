@@ -37,6 +37,16 @@
           >
             ↳
           </span>
+          <!-- 折叠按钮（父任务有关联子任务时显示） -->
+          <button
+            v-if="hasChildren(todo)"
+            class="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded cursor-pointer"
+            :style="{ color: 'var(--text-tertiary)' }"
+            :title="expandedParents.has(todo.id) ? '收起子任务' : '展开子任务'"
+            @click.stop="toggleExpand(todo.id)"
+          >
+            {{ expandedParents.has(todo.id) ? '▼' : '▶' }}
+          </button>
           <input
             type="checkbox"
             :checked="todo.completed"
@@ -107,9 +117,33 @@ const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 const { fetchTodos, removeTodo, toggleTodo } = todoStore
 
+// 子任务折叠（默认折叠，父任务有子任务时才显示折叠按钮）
+const expandedParents = ref<Set<string>>(new Set())
+
+function hasChildren(todo: any): boolean {
+  return todos.value.some(t => t.parentId === todo.id)
+}
+
+function toggleExpand(id: string) {
+  const next = new Set(expandedParents.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  expandedParents.value = next
+}
+
+// 折叠过滤：父任务在列表中且未展开时，隐藏其子任务
+function applyCollapse<T extends { id: string; parentId?: string }>(sorted: T[]): T[] {
+  return sorted.filter(t => {
+    if (!t.parentId) return true
+    const parentInList = sorted.some(p => p.id === t.parentId)
+    if (!parentInList) return true
+    return expandedParents.value.has(t.parentId)
+  })
+}
+
 const completedTodos = computed(() => {
-  // 层级排序：父任务在前，已完成子任务紧跟其后
-  return sortWithHierarchy(todos.value.filter(todo => todo.completed))
+  // 层级排序：父任务在前，已完成子任务紧跟其后（未展开时隐藏）
+  return applyCollapse(sortWithHierarchy(todos.value.filter(todo => todo.completed)))
 })
 
 // 任务详情对话框
