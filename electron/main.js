@@ -2,10 +2,9 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
+const http = require('http')
 const https = require('https')
 const { execSync } = require('child_process')
-const { Readable } = require('stream')
-const { pipeline } = require('stream/promises')
 
 // 允许 file:// 协议加载 ES Module（解决 type="module" + file:// 的 CORS 限制）
 app.commandLine.appendSwitch('--allow-file-access-from-files')
@@ -548,30 +547,48 @@ function httpsGetText(url) {
   })
 }
 
-/** 下载文件（带进度回调 0-1，自动跟随重定向）。
- *  注意：GitHub release 下载链接会返回 302 重定向到 release-assets 签名 URL，
- *  Node 原生 https.get 不跟随重定向会报 "下载失败 HTTP 302"，必须用 fetch。 */
-async function downloadFile(url, dest, onProgress) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'TinyDo' }, redirect: 'follow' })
-  if (!res.ok || !res.body) throw new Error('下载失败 HTTP ' + res.status)
-  const total = parseInt(res.headers.get('content-length') || '0', 10)
-  let received = 0
-  const nodeStream = Readable.fromWeb(res.body)
-  if (onProgress) {
-    nodeStream.on('data', (chunk) => {
-      received += chunk.length
-      if (total) onProgress(received / total)
-    })
-  }
-  const file = fs.createWriteStream(dest)
-  try {
-    await pipeline(nodeStream, file)
-  } catch (err) {
-    try { fs.unlinkSync(dest) } catch {}
-    throw err
-  }
-  if (onProgress) onProgress(1)
-  return dest
+/** 下载文件（带进度回调 0-1，手动跟随重定向 + 流式下载）。
+ *  用 Node 原生 http/https 而非 fetch/undici：undici 下载大文件存在间歇性 bug
+ *  （assert(!this.paused) / 数据静默丢失，导致下载的 DMG 大小正确但内容损坏、
+ *  hdiutil 挂载失败），Node 原生流式下载最稳定。
+ *  同时手动跟随 GitHub release 的 302 重定向（跳到 release-assets 签名 URL）。 */
+function downloadFile(url, dest, onProgress, redirectsLeft = 5) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest)
+    const doRequest = (currentUrl) => {
+      const lib = currentUrl.startsWith('https:') ? https : http
+      lib.get(currentUrl, { headers: { 'User-Agent': 'TinyDo', 'Accept-Encoding': 'identity' } }, (res) => {
+        // 302 重定向：手动跟随
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume()
+          if (redirectsLeft <= 0) {
+            file.destroy()
+            reject(new Error('重定向次数过多'))
+            return
+          }
+          const next = new URL(res.headers.location, currentUrl).toString()
+          doRequest(next)
+          return
+        }
+        if (res.statusCode !== 200) {
+          file.destroy()
+          reject(new Error('下载失败 HTTP ' + res.statusCode))
+          return
+        }
+        const total = parseInt(res.headers['content-length'] || '0', 10)
+        let received = 0
+        res.on('data', (chunk) => {
+          received += chunk.length
+          if (onProgress && total) onProgress(received / total)
+        })
+        res.pipe(file)
+        file.on('finish', () => { if (onProgress) onProgress(1); resolve(dest) })
+        file.on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
+        res.on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
+      }).on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
+    }
+    doRequest(url)
+  })
 }
 
 /** 检查更新：读取仓库最新版本号。
@@ -596,17 +613,43 @@ ipcMain.handle('check-for-update', async () => {
   }
 })
 
-/** 下载最新版并覆盖安装（保留用户数据与配置，位于 ~/Library/Application Support/tinydo） */
+/** 校验 DMG 完整性（数据损坏时 hdiutil verify 会失败并抛错） */
+function verifyDmg(dmgPath) {
+  execSync(`hdiutil verify "${dmgPath}"`, { stdio: ['ignore', 'pipe', 'pipe'] })
+}
+
+/** 下载最新版并覆盖安装（保留用户数据与配置，位于 ~/Library/Application Support/tinydo）。
+ *  网络传输可能导致 DMG 数据损坏（大小对但 CRC 校验失败），
+ *  因此下载后先用 hdiutil verify 校验完整性，损坏则自动重试下载。 */
 ipcMain.handle('download-and-install', async (event, downloadUrl) => {
   if (!downloadUrl) return { success: false, error: '缺少下载地址' }
+  const tmpDmg = path.join(os.tmpdir(), `tinydo-update-${Date.now()}.dmg`)
+  const mount = path.join(os.tmpdir(), `tinydo-mount-${Date.now()}`)
+  const MAX_ATTEMPTS = 3
   try {
-    const tmpDmg = path.join(os.tmpdir(), `tinydo-update-${Date.now()}.dmg`)
-    info('[Update] downloading: ' + downloadUrl)
-    await downloadFile(downloadUrl, tmpDmg, (p) => {
-      event.sender.send('update-progress', Math.round(p * 100))
-    })
+    // 下载 + 校验，损坏自动重试（最多 3 次）
+    let ok = false
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        info(`[Update] downloading (attempt ${attempt}/${MAX_ATTEMPTS}): ${downloadUrl}`)
+        await downloadFile(downloadUrl, tmpDmg, (p) => {
+          event.sender.send('update-progress', Math.round(p * 100))
+        })
+        verifyDmg(tmpDmg) // 校验 DMG 完整性，损坏会抛错
+        ok = true
+        break
+      } catch (err) {
+        info(`[Update] download/verify failed (attempt ${attempt}/${MAX_ATTEMPTS}): ${err.message}`)
+        try { fs.unlinkSync(tmpDmg) } catch {}
+        if (attempt >= MAX_ATTEMPTS) {
+          throw new Error(`下载文件损坏，已自动重试 ${MAX_ATTEMPTS} 次仍失败，请稍后再试`)
+        }
+        // 重试前重置进度提示
+        event.sender.send('update-progress', 0)
+      }
+    }
+    if (!ok) return { success: false, error: '下载失败' }
 
-    const mount = path.join(os.tmpdir(), `tinydo-mount-${Date.now()}`)
     fs.mkdirSync(mount, { recursive: true })
     execSync(`hdiutil attach "${tmpDmg}" -mountpoint "${mount}" -nobrowse -quiet`)
     const srcApp = path.join(mount, 'TinyDo.app')
@@ -630,6 +673,8 @@ ipcMain.handle('download-and-install', async (event, downloadUrl) => {
     return { success: true }
   } catch (err) {
     info('[Update] install failed: ' + err.message)
+    try { fs.unlinkSync(tmpDmg) } catch {}
+    try { execSync(`hdiutil detach "${mount}" -quiet`) } catch {}
     return { success: false, error: err.message }
   }
 })
