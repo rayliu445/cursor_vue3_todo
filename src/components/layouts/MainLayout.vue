@@ -82,14 +82,14 @@
           class="w-14 flex-shrink-0 flex flex-col items-center gap-1 py-2 border-r overflow-y-auto"
           :style="{ borderColor: 'var(--border-color)' }"
         >
-          <!-- 添加任务（第一列第一个） -->
+          <!-- 添加任务（第一列第一个）：动作按钮，非导航项，不保持选中态 -->
           <button
-            class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
-            :style="{ backgroundColor: 'var(--color-accent-light)' }"
+            class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150 icon-btn"
+            style="background-color: transparent"
             title="添加任务"
             @click="handleAddTask"
           >
-            <AppIcon name="add" :size="20" color="var(--color-accent)" />
+            <AppIcon name="add" :size="20" color="var(--text-secondary)" />
           </button>
           <button
             v-for="item in primaryNavItems"
