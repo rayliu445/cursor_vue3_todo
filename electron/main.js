@@ -609,6 +609,15 @@ ipcMain.handle('download-and-install', async (event, downloadUrl) => {
     execSync(`hdiutil detach "${mount}" -quiet`)
     try { fs.unlinkSync(tmpDmg) } catch {}
     info('[Update] installed new version')
+    // 安装完成后短暂停留让界面展示完成状态，再自动重启应用生效。
+    // 若不自动重启，运行中的旧进程仍是旧版本，用户手动替换又会被
+    // Finder 以"应用正在使用中"拒绝，只能被迫删除旧应用后重装。
+    event.sender.send('update-progress', 100)
+    setTimeout(() => {
+      info('[Update] relaunching app to apply new version')
+      app.relaunch()
+      app.quit()
+    }, 2000)
     return { success: true }
   } catch (err) {
     info('[Update] install failed: ' + err.message)

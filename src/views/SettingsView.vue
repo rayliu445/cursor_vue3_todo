@@ -252,7 +252,7 @@
           </div>
 
           <div v-else-if="updateState === 'done'" class="text-xs" :style="{ color: '#22c55e' }">
-            ✓ 新版本已安装完成！请重启应用生效（任务数据与同步配置会保留）。
+            ✓ 新版本已安装完成，应用即将自动重启（任务数据与同步配置会保留）。
           </div>
 
           <div v-else-if="updateState === 'error'" class="space-y-2">
