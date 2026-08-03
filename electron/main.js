@@ -597,10 +597,13 @@ function downloadFile(url, dest, onProgress, redirectsLeft = 5) {
 ipcMain.handle('check-for-update', async () => {
   const currentVersion = app.getVersion()
   try {
-    const pkgText = await httpsGetText(`https://raw.githubusercontent.com/${UPDATE_REPO}/main/package.json`)
+    // 默认读 GitHub 仓库 package.json；可通过环境变量覆盖（本地端到端测试用）
+    const checkUrl = process.env.TINYDO_UPDATE_CHECK_URL || `https://raw.githubusercontent.com/${UPDATE_REPO}/main/package.json`
+    const pkgText = await httpsGetText(checkUrl)
     const pkg = JSON.parse(pkgText)
     const latestVersion = String(pkg.version || '').replace(/^v/, '')
-    const downloadUrl = `https://github.com/${UPDATE_REPO}/releases/download/v${latestVersion}/TinyDo-mac-arm64.dmg`
+    const base = process.env.TINYDO_UPDATE_DMG_BASE || `https://github.com/${UPDATE_REPO}/releases/download`
+    const downloadUrl = `${base}/v${latestVersion}/TinyDo-mac-arm64.dmg`
     return {
       currentVersion,
       latestVersion,
@@ -655,11 +658,36 @@ ipcMain.handle('download-and-install', async (event, downloadUrl) => {
     const srcApp = path.join(mount, 'TinyDo.app')
     if (!fs.existsSync(srcApp)) throw new Error('DMG 内未找到 TinyDo.app')
     const target = '/Applications/TinyDo.app'
-    if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true })
-    fs.cpSync(srcApp, target, { recursive: true })
+
+    // 重命名替换（而非删除再复制）：应用运行时删除自身 bundle 会触发
+    // ENOTDIR（rmSync 递归删除运行中的 app.asar 时文件系统竞争）。
+    // 先把旧 app 原子重命名走（运行中的目录允许 rename，进程继续用旧 inode），
+    // 再把新版复制到位，最后清理备份；复制失败则回滚恢复旧 app。
+    const staging = path.join(os.tmpdir(), `tinydo-staging-${Date.now()}`)
+    const stagedApp = path.join(staging, 'TinyDo.app')
+    fs.mkdirSync(staging, { recursive: true })
+    fs.cpSync(srcApp, stagedApp, { recursive: true }) // 先复制到 staging，缩短替换窗口
+
+    const backup = path.join(os.tmpdir(), `tinydo-old-${Date.now()}.app`)
+    let replaced = false
+    try {
+      if (fs.existsSync(target)) fs.renameSync(target, backup)
+      fs.cpSync(stagedApp, target, { recursive: true })
+      replaced = true
+    } catch (err) {
+      // 安装失败：回滚恢复旧 app
+      try {
+        if (!replaced && !fs.existsSync(target) && fs.existsSync(backup)) fs.renameSync(backup, target)
+      } catch {}
+      throw err
+    }
+
     execSync(`xattr -cr "${target}"`)
     execSync(`hdiutil detach "${mount}" -quiet`)
     try { fs.unlinkSync(tmpDmg) } catch {}
+    // 清理临时目录与备份（旧进程仍映射备份文件时删除可能失败，忽略即可，tmp 会自清）
+    try { fs.rmSync(staging, { recursive: true, force: true }) } catch {}
+    try { fs.rmSync(backup, { recursive: true, force: true }) } catch {}
     info('[Update] installed new version')
     // 安装完成后短暂停留让界面展示完成状态，再自动重启应用生效。
     // 若不自动重启，运行中的旧进程仍是旧版本，用户手动替换又会被
