@@ -135,7 +135,7 @@
           <div
             v-for="todo in filteredTodos"
             :key="todo.id"
-            class="group flex items-center gap-3 px-6 py-3 transition-all duration-150 cursor-pointer"
+            class="group flex items-center gap-3 px-6 py-1.5 transition-all duration-150 cursor-pointer"
             :style="{
               backgroundColor: 'transparent',
               borderBottom: '1px solid var(--border-color)',

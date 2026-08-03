@@ -22,7 +22,7 @@
         <div
           v-for="todo in completedTodos"
           :key="todo.id"
-          class="flex items-center gap-3 px-6 py-3 transition-all duration-150 cursor-pointer"
+          class="flex items-center gap-3 px-6 py-1.5 transition-all duration-150 cursor-pointer"
           :style="{
             borderBottom: '1px solid var(--border-color)',
             paddingLeft: todo.parentId ? '3.5rem' : '1.5rem',
