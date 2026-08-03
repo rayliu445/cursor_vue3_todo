@@ -63,7 +63,7 @@ export const useTodoStore = defineStore('todo', () => {
   }
 
   // 添加待办事项（支持完整字段）
-  async function addTodo(data: { title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean }) {
+  async function addTodo(data: { title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; parentId?: string }) {
     loading.value = true
     error.value = null
     
@@ -79,6 +79,7 @@ export const useTodoStore = defineStore('todo', () => {
         tags: data.tags,
         list: data.list,
         isAllDay: data.isAllDay,
+        parentId: data.parentId,
         createdAt: new Date().toISOString(),
       })
       
@@ -161,60 +162,91 @@ export const useTodoStore = defineStore('todo', () => {
   })
 
   // 批量添加待办事项（用于导入）
-  // 幂等逻辑：按标题匹配已有任务，已存在则补齐缺失字段（如内容），不存在才新增。
-  // 这样重新导入同一份数据不会重复，且能修复旧数据缺失的字段。
-  async function bulkAddTodos(items: Array<{ title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; createdAt?: string; completedTime?: string }>) {
+  // 幂等逻辑：
+  // - 按 sourceId（TickTick taskId）优先匹配，其次按标题匹配
+  // - 已存在则补齐缺失字段（如内容/父子关系），不存在才新增
+  // - 支持子任务关联：parentId（TickTick 父 taskId）→ 本地父任务 id
+  async function bulkAddTodos(items: Array<{ title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; createdAt?: string; completedTime?: string; taskId?: string; parentId?: string }>) {
     loading.value = true
     error.value = null
     let successCount = 0
 
     try {
       const da = getDA()
+      const existing = da.getTodos()
 
-      // 建立标题索引（用于匹配去重）
+      // 索引：sourceId → todo；title → todo
+      const bySource = new Map<string, Todo>()
       const byTitle = new Map<string, Todo>()
-      for (const t of da.getTodos()) {
+      for (const t of existing) {
+        if (t.sourceId) bySource.set(t.sourceId, t)
         const key = (t.title || '').trim()
         if (key && !byTitle.has(key)) byTitle.set(key, t)
       }
 
-      const toAdd: Array<typeof items[number]> = []
-      const toUpdate: Array<{ id: string; item: typeof items[number] }> = []
+      // 第一遍：为每条记录确定本地 id（新增分配新 id，已存在用现有 id），
+      // 并注册 taskId → 本地 id 映射（供 parentId 关联解析）
+      const resolved: Array<{ id: string; item: any; isNew: boolean }> = []
+      const taskIdToLocalId = new Map<string, string>()
 
-      for (const item of items) {
+      for (const raw of items) {
+        const item = raw as any
         const title = (item.title || '').trim()
         if (!title) continue
-        const found = byTitle.get(title)
-        if (found && found.id) {
-          // 已存在：记录待补齐缺失字段
-          toUpdate.push({ id: found.id, item })
+        const sourceId = (item.taskId || '').trim()
+
+        let found: Todo | undefined
+        if (sourceId && bySource.has(sourceId)) {
+          found = bySource.get(sourceId)
         } else {
-          toAdd.push(item)
-          // 防止同一批导入中重复标题被重复添加
-          byTitle.set(title, { id: 'pending', title } as Todo)
+          found = byTitle.get(title)
         }
+
+        if (found && found.id && found.id !== 'pending') {
+          resolved.push({ id: found.id, item, isNew: false })
+        } else {
+          const newId = `todo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${resolved.length}`
+          resolved.push({ id: newId, item, isNew: true })
+          // 防止同一批导入中重复标题被重复添加
+          if (title) byTitle.set(title, { id: 'pending', title } as Todo)
+        }
+        if (sourceId) taskIdToLocalId.set(sourceId, resolved[resolved.length - 1].id)
+      }
+
+      // 第二遍：解析 parentId（TickTick 父 taskId → 本地父任务 id）
+      const resolveParentId = (item: any): string | undefined => {
+        const p = (item.parentId || '').trim()
+        if (!p) return undefined
+        return taskIdToLocalId.get(p)
       }
 
       // 1. 新增（使用批量 API：一次性插入，仅触发一次 onChange 刷新。
       //    注意：不能逐条调用 da.addTodo()——每次都会 notify() → refreshTodos()
       //    全量查询 + 整体替换 todos.value，1000+ 条时会导致 UI 卡死。）
+      const toAdd = resolved.filter(r => r.isNew)
       if (toAdd.length > 0) {
-        da.bulkAddTodos(toAdd.map((item) => ({
-          title: item.title,
-          completed: item.completed ?? false,
-          priority: item.priority ?? 0,
-          dueDate: item.dueDate,
-          startDate: item.startDate,
-          content: item.content,
-          tags: item.tags,
-          list: item.list,
-          isAllDay: item.isAllDay,
-          completedTime: item.completedTime,
-          createdAt: item.createdAt || new Date().toISOString(),
+        // 必须传入分配的 id（r.id），否则 SQLite 会重新生成随机 id，
+        // 导致子任务的 parentId 指向不存在的逻辑 id，父子关联断裂。
+        da.bulkAddTodos(toAdd.map(r => ({
+          id: r.id,
+          title: r.item.title,
+          completed: r.item.completed ?? false,
+          priority: r.item.priority ?? 0,
+          dueDate: r.item.dueDate,
+          startDate: r.item.startDate,
+          content: r.item.content,
+          tags: r.item.tags,
+          list: r.item.list,
+          isAllDay: r.item.isAllDay,
+          completedTime: r.item.completedTime,
+          createdAt: r.item.createdAt || new Date().toISOString(),
+          parentId: resolveParentId(r.item),
+          sourceId: (r.item.taskId || '').trim() || undefined,
         })))
       }
 
       // 2. 补齐已存在任务的缺失字段（幂等：只补空字段，不覆盖已有值）
+      const toUpdate = resolved.filter(r => !r.isNew)
       for (const { id, item } of toUpdate) {
         const current = da.getTodoById(id)
         if (!current) continue
@@ -225,12 +257,18 @@ export const useTodoStore = defineStore('todo', () => {
         if (!current.priority && item.priority) updates.priority = item.priority
         if (!current.list && item.list) updates.list = item.list
         if ((!current.tags || current.tags.length === 0) && Array.isArray(item.tags) && item.tags.length > 0) updates.tags = item.tags
+        const src = (item.taskId || '').trim()
+        if (src && !current.sourceId) updates.sourceId = src
+        if (!current.parentId) {
+          const pid = resolveParentId(item)
+          if (pid) updates.parentId = pid
+        }
         if (Object.keys(updates).length > 0) {
           da.updateTodo(id, updates)
         }
       }
 
-      successCount = toAdd.length + toUpdate.length
+      successCount = resolved.length
       refreshTodos()
       getSyncEngine().scheduleWrite()
     } catch (err) {

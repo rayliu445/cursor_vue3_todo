@@ -139,8 +139,18 @@
             :style="{
               backgroundColor: 'transparent',
               borderBottom: '1px solid var(--border-color)',
+              paddingLeft: todo.parentId ? '3.5rem' : '1.5rem',
             }"
           >
+            <!-- 子任务标记 -->
+            <span
+              v-if="todo.parentId"
+              class="text-xs flex-shrink-0"
+              :style="{ color: 'var(--text-tertiary)' }"
+              title="子任务"
+            >
+              ↳
+            </span>
             <!-- 复选框 -->
             <input
               type="checkbox"
@@ -362,6 +372,68 @@
               <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">创建时间</label>
               <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
                 {{ formatFullDate(editCreatedAt) }}
+              </div>
+            </div>
+            <!-- 子任务 -->
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">子任务</label>
+              <div v-if="subTasks.length > 0" class="space-y-1">
+                <div
+                  v-for="st in subTasks"
+                  :key="st.id"
+                  class="flex items-center gap-2 px-2 py-1.5 rounded"
+                  :style="{ backgroundColor: 'var(--bg-hover)' }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="st.completed"
+                    class="checkbox-tick"
+                    @change="todoStore.toggleTodo(st.id)"
+                  />
+                  <span
+                    class="flex-1 text-sm truncate cursor-pointer"
+                    :style="{
+                      color: 'var(--text-primary)',
+                      textDecoration: st.completed ? 'line-through' : 'none',
+                    }"
+                    @click="startEdit(st)"
+                  >
+                    {{ st.title }}
+                  </span>
+                  <button
+                    class="icon-btn w-6 h-6 flex items-center justify-center rounded"
+                    :style="{ color: 'var(--text-tertiary)' }"
+                    title="删除子任务"
+                    @click="deleteSubTask(st)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div v-else class="text-xs" :style="{ color: 'var(--text-tertiary)' }">暂无子任务</div>
+              <div class="flex gap-2 mt-2">
+                <input
+                  v-model="newSubTaskTitle"
+                  type="text"
+                  placeholder="添加子任务..."
+                  class="flex-1 px-3 py-1.5 text-sm rounded-lg border outline-none transition-all duration-150"
+                  :style="{
+                    backgroundColor: 'var(--bg-app)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                  }"
+                  @keyup.enter="addSubTask"
+                />
+                <button
+                  class="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-150"
+                  :style="{
+                    backgroundColor: 'var(--color-accent-light)',
+                    color: 'var(--text-primary)',
+                  }"
+                  @click="addSubTask"
+                >
+                  添加
+                </button>
               </div>
             </div>
           </div>
@@ -634,6 +706,29 @@ async function deleteFromDetail() {
     await removeTodo(editTarget.value.id)
     showEditDialog.value = false
     editTarget.value = null
+  }
+}
+
+// ============ 子任务 ============
+const newSubTaskTitle = ref('')
+const subTasks = computed(() => {
+  if (!editTarget.value) return []
+  return todos.value.filter(t => t.parentId === editTarget.value.id)
+})
+
+async function addSubTask() {
+  if (!editTarget.value || !newSubTaskTitle.value.trim()) return
+  await todoStore.addTodo({
+    title: newSubTaskTitle.value.trim(),
+    priority: 0,
+    parentId: editTarget.value.id,
+  })
+  newSubTaskTitle.value = ''
+}
+
+async function deleteSubTask(t: any) {
+  if (confirm('确定要删除这个子任务吗？')) {
+    await removeTodo(t.id)
   }
 }
 

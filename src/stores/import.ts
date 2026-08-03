@@ -71,6 +71,8 @@ export const useImportStore = defineStore('import', () => {
       list: item.list ?? item.List ?? item.projectId ?? item.folder ?? '',
       createdAt: normalizeDate(item.createdAt ?? item.createdTime ?? item.created_time ?? ''),
       isAllDay: item.allDay ?? item.isAllDay ?? false,
+      taskId: item.taskId ?? item.task_id ?? '',
+      parentId: item.parentId ?? item.parent_id ?? '',
     })).filter((item: any) => item.title)
   }
 
@@ -153,6 +155,8 @@ export const useImportStore = defineStore('import', () => {
       completed: item.Status === '1' || item.Status === '2' || item.Status === 'completed' || item['状态'] === '已完成' || item.completed === 'true',
       completedTime: normalizeDate(item['Completed Time'] || item.completedTime || item['完成时间'] || ''),
       tags: parseTags(item.Tags || item.tags || item['标签'] || ''),
+      taskId: item.taskId || item['Task Id'] || '',
+      parentId: item.parentId || item['Parent Id'] || '',
       list: item.List || item.list || item['清单'] || item['列表'] || '',
       createdAt: normalizeDate(item['Created Time'] || item.createdAt || item['创建时间'] || ''),
     })).filter((item: any) => item.title)

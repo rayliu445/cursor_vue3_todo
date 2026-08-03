@@ -21,6 +21,8 @@ export interface Todo {
   isAllDay?: boolean
   completedTime?: string
   updatedAt?: string
+  parentId?: string
+  sourceId?: string
 }
 
 export interface DataAccess {
@@ -82,7 +84,7 @@ class SqliteDataAccess implements DataAccess {
       priority: input.priority, dueDate: input.dueDate, startDate: input.startDate,
       content: input.content, tags: input.tags, list: input.list,
       isAllDay: input.isAllDay, completedTime: input.completedTime,
-      createdAt: input.createdAt,
+      createdAt: input.createdAt, parentId: input.parentId, sourceId: input.sourceId,
     })
     this.notify()
     return rowToTodo(row)
@@ -90,10 +92,11 @@ class SqliteDataAccess implements DataAccess {
 
   bulkAddTodos(inputs: Partial<Todo>[]): Todo[] {
     const rows = this.db.bulkAddTodos(inputs.map(i => ({
-      title: i.title!, completed: i.completed, priority: i.priority,
+      id: i.id, title: i.title!, completed: i.completed, priority: i.priority,
       dueDate: i.dueDate, startDate: i.startDate, content: i.content,
       tags: i.tags, list: i.list, isAllDay: i.isAllDay,
       completedTime: i.completedTime, createdAt: i.createdAt,
+      parentId: i.parentId, sourceId: i.sourceId,
     })))
     this.notify()
     return rows.map(rowToTodo)
@@ -109,6 +112,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: t.dueDate, startDate: t.startDate, content: t.content,
       tags: t.tags, list: t.list, isAllDay: t.isAllDay,
       completedTime: t.completedTime, createdAt: t.createdAt, updatedAt: t.updatedAt,
+      parentId: t.parentId, sourceId: t.sourceId,
     })))
     this.notify()
   }
@@ -118,7 +122,8 @@ class SqliteDataAccess implements DataAccess {
       title: updates.title, completed: updates.completed, priority: updates.priority,
       dueDate: updates.dueDate, startDate: updates.startDate, content: updates.content,
       tags: updates.tags, list: updates.list, isAllDay: updates.isAllDay,
-      completedTime: updates.completedTime,
+      completedTime: updates.completedTime, parentId: updates.parentId,
+      sourceId: updates.sourceId,
     })
     this.notify()
   }
@@ -248,6 +253,8 @@ function rowToTodo(row: any): Todo {
     list: row.list_name ?? undefined, isAllDay: row.is_all_day === 1,
     completedTime: row.completed_time ?? undefined,
     updatedAt: row.updated_at ?? undefined,
+    parentId: row.parent_id ?? undefined,
+    sourceId: row.source_id ?? undefined,
   }
 }
 
