@@ -143,15 +143,35 @@ export const useTodoStore = defineStore('todo', () => {
   }
 
   // 切换待办事项完成状态
+  // 级联规则：父任务完成/取消完成时，所有子任务同步（递归）；子任务单独操作不影响父任务
   async function toggleTodo(id: string) {
     try {
       const todo = todos.value.find((t) => t.id === id)
-      if (todo) {
-        const da = getDA()
-        da.toggleTodo(id)
-        refreshTodos()
-        getSyncEngine().scheduleWrite()
+      if (!todo) return
+      const da = getDA()
+      const newCompleted = !todo.completed
+      const completedTime = newCompleted ? new Date().toISOString() : null
+
+      // 收集所有后代子任务 id（递归，支持多级父子）
+      const descendantIds: string[] = []
+      const collect = (pid: string) => {
+        for (const t of todos.value) {
+          if (t.parentId === pid) {
+            descendantIds.push(t.id)
+            collect(t.id)
+          }
+        }
       }
+      collect(id)
+
+      // 更新父任务本身
+      da.updateTodo(id, { completed: newCompleted, completedTime } as any)
+      // 级联更新子任务（父任务勾选完成 → 子任务一起完成；取消完成 → 一起取消）
+      for (const cid of descendantIds) {
+        da.updateTodo(cid, { completed: newCompleted, completedTime } as any)
+      }
+      refreshTodos()
+      getSyncEngine().scheduleWrite()
     } catch (err) {
       console.error('切换待办事项失败:', err)
     }

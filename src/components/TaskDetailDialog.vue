@@ -315,7 +315,8 @@ async function confirmEdit() {
   if (!t || !editTitle.value.trim()) return
   const updates: Record<string, any> = {
     title: editTitle.value.trim(),
-    content: editContent.value.trim() || undefined,
+    // 空内容传 null 而不是 undefined：undefined 时 sqlite 不会更新 content 字段，清空无法保存
+    content: editContent.value.trim() || null,
     priority: editPriority.value,
     dueDate: editDueDate.value ? new Date(editDueDate.value).toISOString() : undefined,
     startDate: editStartDate.value ? new Date(editStartDate.value).toISOString() : undefined,
