@@ -161,6 +161,8 @@ export const useTodoStore = defineStore('todo', () => {
   })
 
   // 批量添加待办事项（用于导入）
+  // 幂等逻辑：按标题匹配已有任务，已存在则补齐缺失字段（如内容），不存在才新增。
+  // 这样重新导入同一份数据不会重复，且能修复旧数据缺失的字段。
   async function bulkAddTodos(items: Array<{ title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; createdAt?: string; completedTime?: string }>) {
     loading.value = true
     error.value = null
@@ -168,23 +170,67 @@ export const useTodoStore = defineStore('todo', () => {
 
     try {
       const da = getDA()
-      // 使用数据层批量 API：一次性插入全部，仅触发一次 onChange 刷新。
-      // 注意：不能逐条调用 da.addTodo()（每次都会 notify() → refreshTodos()
-      // 全量查询 + 整体替换 todos.value），1000+ 条时会导致 UI 卡死。
-      da.bulkAddTodos(items.map((item) => ({
-        title: item.title,
-        completed: item.completed ?? false,
-        priority: item.priority ?? 0,
-        dueDate: item.dueDate,
-        startDate: item.startDate,
-        content: item.content,
-        tags: item.tags,
-        list: item.list,
-        isAllDay: item.isAllDay,
-        completedTime: item.completedTime,
-        createdAt: item.createdAt || new Date().toISOString(),
-      })))
-      successCount = items.length
+
+      // 建立标题索引（用于匹配去重）
+      const byTitle = new Map<string, Todo>()
+      for (const t of da.getTodos()) {
+        const key = (t.title || '').trim()
+        if (key && !byTitle.has(key)) byTitle.set(key, t)
+      }
+
+      const toAdd: Array<typeof items[number]> = []
+      const toUpdate: Array<{ id: string; item: typeof items[number] }> = []
+
+      for (const item of items) {
+        const title = (item.title || '').trim()
+        if (!title) continue
+        const found = byTitle.get(title)
+        if (found && found.id) {
+          // 已存在：记录待补齐缺失字段
+          toUpdate.push({ id: found.id, item })
+        } else {
+          toAdd.push(item)
+          // 防止同一批导入中重复标题被重复添加
+          byTitle.set(title, { id: 'pending', title } as Todo)
+        }
+      }
+
+      // 1. 新增（使用批量 API：一次性插入，仅触发一次 onChange 刷新。
+      //    注意：不能逐条调用 da.addTodo()——每次都会 notify() → refreshTodos()
+      //    全量查询 + 整体替换 todos.value，1000+ 条时会导致 UI 卡死。）
+      if (toAdd.length > 0) {
+        da.bulkAddTodos(toAdd.map((item) => ({
+          title: item.title,
+          completed: item.completed ?? false,
+          priority: item.priority ?? 0,
+          dueDate: item.dueDate,
+          startDate: item.startDate,
+          content: item.content,
+          tags: item.tags,
+          list: item.list,
+          isAllDay: item.isAllDay,
+          completedTime: item.completedTime,
+          createdAt: item.createdAt || new Date().toISOString(),
+        })))
+      }
+
+      // 2. 补齐已存在任务的缺失字段（幂等：只补空字段，不覆盖已有值）
+      for (const { id, item } of toUpdate) {
+        const current = da.getTodoById(id)
+        if (!current) continue
+        const updates: Record<string, any> = {}
+        if (!current.content && item.content) updates.content = item.content
+        if (!current.dueDate && item.dueDate) updates.dueDate = item.dueDate
+        if (!current.startDate && item.startDate) updates.startDate = item.startDate
+        if (!current.priority && item.priority) updates.priority = item.priority
+        if (!current.list && item.list) updates.list = item.list
+        if ((!current.tags || current.tags.length === 0) && Array.isArray(item.tags) && item.tags.length > 0) updates.tags = item.tags
+        if (Object.keys(updates).length > 0) {
+          da.updateTodo(id, updates)
+        }
+      }
+
+      successCount = toAdd.length + toUpdate.length
       refreshTodos()
       getSyncEngine().scheduleWrite()
     } catch (err) {

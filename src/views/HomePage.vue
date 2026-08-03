@@ -137,11 +137,9 @@
             :key="todo.id"
             class="group flex items-center gap-3 px-6 py-3 transition-all duration-150 cursor-pointer"
             :style="{
-              backgroundColor: todo === editingTodo ? 'var(--bg-hover)' : 'transparent',
+              backgroundColor: 'transparent',
               borderBottom: '1px solid var(--border-color)',
             }"
-            @mouseenter="hoveredTodo = todo.id"
-            @mouseleave="hoveredTodo = null"
           >
             <!-- 复选框 -->
             <input
@@ -162,36 +160,26 @@
               }"
             />
 
-            <!-- 任务标题 -->
-            <span
-              v-if="editingTodo !== todo"
-              class="flex-1 text-sm truncate"
-              :class="{ 'line-through': todo.completed }"
-              :style="{
-                color: todo.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                textDecorationColor: 'var(--text-tertiary)',
-              }"
-              @click="startInlineEdit(todo)"
-            >
-              {{ todo.title }}
-            </span>
-
-            <!-- 内联编辑输入框 -->
-            <input
-              v-else
-              ref="inlineEditRef"
-              v-model="editTitle"
-              type="text"
-              class="flex-1 text-sm px-2 py-0.5 rounded border outline-none"
-              :style="{
-                backgroundColor: 'var(--bg-card)',
-                borderColor: 'var(--color-accent)',
-                color: 'var(--text-primary)',
-              }"
-              @keyup.enter="confirmInlineEdit"
-              @keyup.escape="cancelInlineEdit"
-              @blur="confirmInlineEdit"
-            />
+            <!-- 任务标题 + 内容预览（点击打开详情） -->
+            <div class="flex-1 min-w-0 cursor-pointer" @click="startEdit(todo)">
+              <div
+                class="text-sm truncate"
+                :class="{ 'line-through': todo.completed }"
+                :style="{
+                  color: todo.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                  textDecorationColor: 'var(--text-tertiary)',
+                }"
+              >
+                {{ todo.title }}
+              </div>
+              <div
+                v-if="todo.content"
+                class="text-xs truncate mt-0.5"
+                :style="{ color: 'var(--text-tertiary)' }"
+              >
+                {{ todo.content }}
+              </div>
+            </div>
 
             <!-- 截止日期 -->
             <span
@@ -242,7 +230,7 @@
       </div>
     </div>
 
-    <!-- 编辑对话框（完整编辑） -->
+    <!-- 任务详情对话框（点击条目进入） -->
     <transition name="scale">
       <div
         v-if="showEditDialog"
@@ -251,11 +239,11 @@
         @click.self="cancelEdit"
       >
         <div
-          class="w-full max-w-md rounded-xl shadow-lg p-6 relative"
+          class="w-full max-w-md rounded-xl shadow-lg p-6 relative max-h-[85vh] overflow-y-auto"
           :style="{ backgroundColor: 'var(--bg-card)' }"
         >
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-semibold" :style="{ color: 'var(--text-primary)' }">编辑任务</h3>
+            <h3 class="text-base font-semibold" :style="{ color: 'var(--text-primary)' }">任务详情</h3>
             <button
               class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
               :style="{ color: 'var(--text-tertiary)' }"
@@ -265,8 +253,9 @@
             </button>
           </div>
           <div class="space-y-4">
+            <!-- 标题 -->
             <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">任务内容</label>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标题</label>
               <input
                 v-model="editTitle"
                 type="text"
@@ -276,9 +265,34 @@
                   borderColor: 'var(--border-color)',
                   color: 'var(--text-primary)',
                 }"
-                @keyup.enter="confirmEdit"
               />
             </div>
+            <!-- 内容 -->
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">内容</label>
+              <textarea
+                v-model="editContent"
+                rows="4"
+                placeholder="任务详细内容..."
+                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150 resize-y"
+                :style="{
+                  backgroundColor: 'var(--bg-app)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                }"
+              ></textarea>
+            </div>
+            <!-- 完成状态 -->
+            <div class="flex items-center gap-2">
+              <input
+                id="detail-completed"
+                v-model="editCompleted"
+                type="checkbox"
+                class="checkbox-tick"
+              />
+              <label for="detail-completed" class="text-sm cursor-pointer" :style="{ color: 'var(--text-secondary)' }">已完成</label>
+            </div>
+            <!-- 优先级 -->
             <div>
               <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">优先级</label>
               <div class="flex gap-2">
@@ -293,6 +307,7 @@
                 </button>
               </div>
             </div>
+            <!-- 截止日期 -->
             <div>
               <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">截止日期</label>
               <input
@@ -306,29 +321,78 @@
                 }"
               />
             </div>
+            <!-- 开始日期 -->
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">开始日期</label>
+              <input
+                v-model="editStartDate"
+                type="date"
+                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
+                :style="{
+                  backgroundColor: 'var(--bg-app)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                }"
+              />
+            </div>
+            <!-- 标签 -->
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标签</label>
+              <input
+                v-model="editTags"
+                type="text"
+                placeholder="多个标签用逗号分隔"
+                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
+                :style="{
+                  backgroundColor: 'var(--bg-app)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                }"
+              />
+            </div>
+            <!-- 清单（只读） -->
+            <div v-if="editList">
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">清单</label>
+              <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
+                {{ editList }}
+              </div>
+            </div>
+            <!-- 创建时间（只读） -->
+            <div v-if="editCreatedAt">
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">创建时间</label>
+              <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
+                {{ formatFullDate(editCreatedAt) }}
+              </div>
+            </div>
           </div>
-          <div class="flex justify-end gap-2 mt-6">
+          <div class="flex justify-between gap-2 mt-6">
             <button
               class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
-              :style="{
-                backgroundColor: 'var(--bg-hover)',
-                color: 'var(--text-secondary)',
-              }"
-              @click="cancelEdit"
+              :style="{ backgroundColor: 'var(--bg-hover)', color: '#e74c3c' }"
+              @click="deleteFromDetail"
             >
-              取消
+              删除
             </button>
-            <button
-              class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
-              :style="{
-                backgroundColor: 'var(--bg-hover)',
-                color: 'var(--text-primary)',
-                fontWeight: 500,
-              }"
-              @click="confirmEdit"
-            >
-              保存
-            </button>
+            <div class="flex gap-2">
+              <button
+                class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
+                :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }"
+                @click="cancelEdit"
+              >
+                取消
+              </button>
+              <button
+                class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
+                :style="{
+                  backgroundColor: 'var(--color-accent-light)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 500,
+                }"
+                @click="confirmEdit"
+              >
+                保存
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -500,59 +564,61 @@ async function deleteTodo(id: string) {
   }
 }
 
-// ============ 内联编辑 ============
-const editingTodo = ref<{ id: string; title: string; priority?: number; dueDate?: string } | null>(null)
-const inlineEditRef = ref<HTMLInputElement | null>(null)
-const editTitle = ref('')
-const hoveredTodo = ref<string | null>(null)
-
-function startInlineEdit(todo: { id: string; title: string; priority?: number; dueDate?: string }) {
-  editingTodo.value = todo
-  editTitle.value = todo.title
-  nextTick(() => {
-    inlineEditRef.value?.focus()
-    inlineEditRef.value?.select()
-  })
-}
-
-async function confirmInlineEdit() {
-  if (!editingTodo.value) return
-  if (editTitle.value.trim() && editTitle.value !== editingTodo.value.title) {
-    await todoStore.updateTodo(editingTodo.value.id, { title: editTitle.value.trim() })
-  }
-  editingTodo.value = null
-}
-
-function cancelInlineEdit() {
-  editingTodo.value = null
-}
-
-// ============ 完整编辑对话框 ============
+// ============ 任务详情对话框 ============
 const showEditDialog = ref(false)
-const editTarget = ref<{ id: string; title: string; priority: number; dueDate?: string } | null>(null)
+const editTarget = ref<{
+  id: string; title: string; completed: boolean; priority: number;
+  dueDate?: string; startDate?: string; content?: string; tags?: string[];
+  list?: string; createdAt?: string;
+} | null>(null)
+const editTitle = ref('')
+const editContent = ref('')
 const editPriority = ref<0 | 1 | 3 | 5>(0)
 const editDueDate = ref('')
+const editStartDate = ref('')
+const editTags = ref('')
+const editCompleted = ref(false)
+const editList = ref('')
+const editCreatedAt = ref('')
 
-function startEdit(todo: { id: string; title: string; priority?: number; dueDate?: string }) {
-  editTarget.value = { id: todo.id, title: todo.title, priority: todo.priority ?? 0, dueDate: todo.dueDate }
-  editTitle.value = todo.title
+function startEdit(todo: any) {
+  editTarget.value = {
+    id: todo.id, title: todo.title, completed: !!todo.completed,
+    priority: todo.priority ?? 0, dueDate: todo.dueDate,
+    startDate: todo.startDate, content: todo.content,
+    tags: todo.tags ?? [], list: todo.list ?? '', createdAt: todo.createdAt,
+  }
+  editTitle.value = todo.title ?? ''
+  editContent.value = todo.content ?? ''
   editPriority.value = (todo.priority ?? 0) as 0 | 1 | 3 | 5
   editDueDate.value = todo.dueDate ? todo.dueDate.slice(0, 10) : ''
+  editStartDate.value = todo.startDate ? todo.startDate.slice(0, 10) : ''
+  editTags.value = (todo.tags ?? []).join(', ')
+  editCompleted.value = !!todo.completed
+  editList.value = todo.list ?? ''
+  editCreatedAt.value = todo.createdAt ?? ''
   showEditDialog.value = true
 }
 
 async function confirmEdit() {
   if (!editTarget.value || !editTitle.value.trim()) return
-  const updates: Record<string, any> = { title: editTitle.value }
-  if (editPriority.value !== editTarget.value.priority) {
-    updates.priority = editPriority.value
+  const target = editTarget.value
+  const updates: Record<string, any> = {
+    title: editTitle.value.trim(),
+    content: editContent.value.trim() || undefined,
+    priority: editPriority.value,
+    dueDate: editDueDate.value ? new Date(editDueDate.value).toISOString() : undefined,
+    startDate: editStartDate.value ? new Date(editStartDate.value).toISOString() : undefined,
+    tags: editTags.value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
+    completed: editCompleted.value,
   }
-  if (editDueDate.value) {
-    updates.dueDate = new Date(editDueDate.value).toISOString()
-  } else {
-    updates.dueDate = undefined
+  // 完成状态变化时维护完成时间
+  if (editCompleted.value && !target.completed) {
+    updates.completedTime = new Date().toISOString()
+  } else if (!editCompleted.value && target.completed) {
+    updates.completedTime = undefined
   }
-  await todoStore.updateTodo(editTarget.value.id, updates)
+  await todoStore.updateTodo(target.id, updates)
   showEditDialog.value = false
   editTarget.value = null
 }
@@ -560,6 +626,24 @@ async function confirmEdit() {
 function cancelEdit() {
   showEditDialog.value = false
   editTarget.value = null
+}
+
+async function deleteFromDetail() {
+  if (!editTarget.value) return
+  if (confirm('确定要删除这个任务吗？')) {
+    await removeTodo(editTarget.value.id)
+    showEditDialog.value = false
+    editTarget.value = null
+  }
+}
+
+// ============ 工具函数 ============
+function formatFullDate(dateStr: string) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 // ============ 工具函数 ============
