@@ -4,6 +4,8 @@ const fs = require('fs')
 const os = require('os')
 const https = require('https')
 const { execSync } = require('child_process')
+const { Readable } = require('stream')
+const { pipeline } = require('stream/promises')
 
 // 允许 file:// 协议加载 ES Module（解决 type="module" + file:// 的 CORS 限制）
 app.commandLine.appendSwitch('--allow-file-access-from-files')
@@ -546,23 +548,30 @@ function httpsGetText(url) {
   })
 }
 
-/** 下载文件（带进度回调 0-1） */
-function downloadFile(url, dest, onProgress) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest)
-    https.get(url, { headers: { 'User-Agent': 'TinyDo' } }, (res) => {
-      if (res.statusCode !== 200) { reject(new Error('下载失败 HTTP ' + res.statusCode)); return }
-      const total = parseInt(res.headers['content-length'] || '0', 10)
-      let received = 0
-      res.on('data', (chunk) => {
-        received += chunk.length
-        if (onProgress && total) onProgress(received / total)
-      })
-      res.pipe(file)
-      file.on('finish', () => { file.close(); if (onProgress) onProgress(1); resolve(dest) })
-      file.on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
-    }).on('error', (err) => { try { fs.unlinkSync(dest) } catch {} reject(err) })
-  })
+/** 下载文件（带进度回调 0-1，自动跟随重定向）。
+ *  注意：GitHub release 下载链接会返回 302 重定向到 release-assets 签名 URL，
+ *  Node 原生 https.get 不跟随重定向会报 "下载失败 HTTP 302"，必须用 fetch。 */
+async function downloadFile(url, dest, onProgress) {
+  const res = await fetch(url, { headers: { 'User-Agent': 'TinyDo' }, redirect: 'follow' })
+  if (!res.ok || !res.body) throw new Error('下载失败 HTTP ' + res.status)
+  const total = parseInt(res.headers.get('content-length') || '0', 10)
+  let received = 0
+  const nodeStream = Readable.fromWeb(res.body)
+  if (onProgress) {
+    nodeStream.on('data', (chunk) => {
+      received += chunk.length
+      if (total) onProgress(received / total)
+    })
+  }
+  const file = fs.createWriteStream(dest)
+  try {
+    await pipeline(nodeStream, file)
+  } catch (err) {
+    try { fs.unlinkSync(dest) } catch {}
+    throw err
+  }
+  if (onProgress) onProgress(1)
+  return dest
 }
 
 /** 检查更新：读取仓库最新版本号。
