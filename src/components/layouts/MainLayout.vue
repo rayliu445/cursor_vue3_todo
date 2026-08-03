@@ -82,14 +82,23 @@
           class="w-14 flex-shrink-0 flex flex-col items-center gap-1 py-2 border-r overflow-y-auto"
           :style="{ borderColor: 'var(--border-color)' }"
         >
-          <!-- 添加任务（第一列第一个）：动作按钮，非导航项，不保持选中态 -->
+          <!-- 添加任务（第一列第一个）：动作按钮，非导航项，不保持选中态；
+               按下时背景高亮+图标变橙（与其他按钮选中效果一致），松开/离开即恢复 -->
           <button
-            class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150 icon-btn"
-            style="background-color: transparent"
+            class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
+            :style="{
+              backgroundColor: isAddPressed ? 'var(--color-accent-light)'
+                : isAddHovered ? 'var(--bg-hover)'
+                : 'transparent',
+            }"
             title="添加任务"
             @click="handleAddTask"
+            @mousedown="isAddPressed = true"
+            @mouseup="isAddPressed = false"
+            @mouseenter="isAddHovered = true"
+            @mouseleave="isAddHovered = false; isAddPressed = false"
           >
-            <AppIcon name="add" :size="20" color="var(--text-secondary)" />
+            <AppIcon name="add" :size="20" :color="isAddPressed ? 'var(--color-accent)' : 'var(--text-secondary)'" />
           </button>
           <button
             v-for="item in primaryNavItems"
@@ -190,6 +199,10 @@ const route = useRoute()
 const router = useRouter()
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
+
+// 添加任务按钮交互状态（悬停浅色、按下高亮，均瞬时，不常驻）
+const isAddPressed = ref(false)
+const isAddHovered = ref(false)
 
 // 获取今天和最近7天的任务数量
 const todayCount = computed(() => {
