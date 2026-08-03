@@ -168,22 +168,23 @@ export const useTodoStore = defineStore('todo', () => {
 
     try {
       const da = getDA()
-      for (const item of items) {
-        da.addTodo({
-          title: item.title,
-          completed: item.completed ?? false,
-          priority: item.priority ?? 0,
-          dueDate: item.dueDate,
-          startDate: item.startDate,
-          content: item.content,
-          tags: item.tags,
-          list: item.list,
-          isAllDay: item.isAllDay,
-          completedTime: item.completedTime,
-          createdAt: item.createdAt || new Date().toISOString(),
-        })
-        successCount++
-      }
+      // 使用数据层批量 API：一次性插入全部，仅触发一次 onChange 刷新。
+      // 注意：不能逐条调用 da.addTodo()（每次都会 notify() → refreshTodos()
+      // 全量查询 + 整体替换 todos.value），1000+ 条时会导致 UI 卡死。
+      da.bulkAddTodos(items.map((item) => ({
+        title: item.title,
+        completed: item.completed ?? false,
+        priority: item.priority ?? 0,
+        dueDate: item.dueDate,
+        startDate: item.startDate,
+        content: item.content,
+        tags: item.tags,
+        list: item.list,
+        isAllDay: item.isAllDay,
+        completedTime: item.completedTime,
+        createdAt: item.createdAt || new Date().toISOString(),
+      })))
+      successCount = items.length
       refreshTodos()
       getSyncEngine().scheduleWrite()
     } catch (err) {
