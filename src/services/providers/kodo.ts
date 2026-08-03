@@ -35,11 +35,21 @@ const DL_HOST_PREFIX = IS_ELECTRON ? '' : '/qiniu-dl'
 
 // ============ 工具函数 ============
 
+/** Uint8Array → Base64（分块拼接，避免 String.fromCharCode(...) 展开超大数组导致 Maximum call stack size exceeded） */
+function bytesToBase64(data: Uint8Array): string {
+  let binary = ''
+  const CHUNK = 0x8000 // 32KB 分块，远低于 V8 参数上限
+  for (let i = 0; i < data.length; i += CHUNK) {
+    binary += String.fromCharCode(...data.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
+}
+
 /** URL 安全的 Base64 编码（Qiniu 规范，保留 = 填充） */
 function urlsafeBase64(data: string | Uint8Array): string {
   const binary = typeof data === 'string'
     ? btoa(unescape(encodeURIComponent(data)))
-    : btoa(String.fromCharCode(...data))
+    : bytesToBase64(data)
   return binary.replace(/\+/g, '-').replace(/\//g, '_')
 }
 
@@ -218,7 +228,7 @@ export class KodoProvider implements CloudProvider {
   async write(path: string, data: Uint8Array): Promise<void> {
     try {
       const uploadToken = await buildUploadToken(this.config.bucket, this.objectKey, this.config.accessKeyId, this.config.accessKeySecret)
-      const base64Data = btoa(String.fromCharCode(...data))
+      const base64Data = bytesToBase64(data)
       const encodedKey = urlsafeBase64(this.objectKey)
 
       const res = await fetch(`${UP_API_BASE}/putb64/${data.length}/key/${encodedKey}`, {
