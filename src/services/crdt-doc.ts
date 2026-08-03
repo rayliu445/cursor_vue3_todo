@@ -30,6 +30,7 @@ export interface CRDTTodo {
   isAllDay?: boolean
   completedTime?: string
   updatedAt?: string
+  deleted?: boolean // 软删除标记（tombstone，用于同步删除传播）
 }
 
 export interface CRDTList {

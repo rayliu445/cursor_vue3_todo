@@ -426,12 +426,15 @@ const filteredTodos = computed(() => {
   next7.setDate(next7.getDate() + 7)
   const next7Str = toLocalDateStr(next7)
 
+  let isDateView = false
   switch (currentView.value) {
     case 'today':
+      isDateView = true
       // 今天视图：含未完成 + 已完成（由 displayRows 分组显示）
       list = list.filter(t => t.dueDate && t.dueDate.startsWith(todayStr))
       break
     case 'next7':
+      isDateView = true
       list = list.filter(t => {
         if (!t.dueDate) return false
         return t.dueDate >= todayStr && t.dueDate <= next7Str
@@ -439,6 +442,24 @@ const filteredTodos = computed(() => {
       break
     default:
       list = list.filter(t => !t.completed)
+  }
+
+  // 日期视图：子任务跟随父任务（递归）——父任务在过滤结果中时，其后代
+  // 全部一并显示（即使子任务自身无日期或日期不同），避免“创建了子任务
+  // 却在今天/最近7天里看不到”
+  if (isDateView) {
+    const ids = new Set(list.map(t => t.id))
+    let changed = true
+    while (changed) {
+      changed = false
+      for (const t of todos.value) {
+        if (t.parentId && ids.has(t.parentId) && !ids.has(t.id)) {
+          ids.add(t.id)
+          list.push(t)
+          changed = true
+        }
+      }
+    }
   }
 
   // 层级排序 + 折叠过滤：父任务在前，子任务紧跟其后（未展开时隐藏）

@@ -25,10 +25,19 @@ export function sortWithHierarchy<T extends { id: string; parentId?: string }>(l
     }
   }
   const result: T[] = []
+  // 递归：顶层任务后紧跟其所有后代（子任务、孙任务…），保证父在子上方
+  const pushTree = (id: string) => {
+    const subs = children.get(id)
+    if (subs) {
+      for (const s of subs) {
+        result.push(s)
+        pushTree(s.id)
+      }
+    }
+  }
   for (const root of roots) {
     result.push(root)
-    const subs = children.get(root.id)
-    if (subs) result.push(...subs)
+    pushTree(root.id)
   }
   return result
 }
@@ -177,18 +186,35 @@ export const useTodoStore = defineStore('todo', () => {
     }
   }
 
-  // 删除待办事项
+  // 删除待办事项（软删除 tombstone，便于同步删除传播）
+  // - 标记 deleted=true 而不是物理删除：云端仍保留该任务时，
+  //   物理删除会导致 LWW 合并把它“复活”。tombstone 会把删除同步到所有端。
+  // - 删除父任务时级联删除所有后代子任务，避免产生孤立子任务。
   async function removeTodo(id: string) {
     loading.value = true
     error.value = null
     
     try {
       const da = getDA()
-      da.removeTodo(id)
+      // 级联收集所有后代（递归）
+      const ids = [id]
+      const collect = (pid: string) => {
+        for (const t of todos.value) {
+          if (t.parentId === pid) {
+            ids.push(t.id)
+            collect(t.id)
+          }
+        }
+      }
+      collect(id)
+      // 标记软删除（deleted + updatedAt 更新，同步时 tombstone 传播）
+      for (const i of ids) {
+        da.updateTodo(i, { deleted: true } as any)
+      }
       refreshTodos()
       getSyncEngine().scheduleWrite()
-      
-      todos.value = todos.value.filter((todo) => todo.id !== id)
+
+      todos.value = todos.value.filter((todo) => !ids.includes(todo.id))
     } catch (err) {
       console.error('删除待办事项失败:', err)
       error.value = err instanceof Error ? err.message : '删除待办事项失败'

@@ -130,10 +130,12 @@ export class SyncEngine {
     try {
       const dataAccess = getDataAccess()
 
-      // 1. 本地数据（SQLite 是数据源）
-      const localTodos = dataAccess.getTodos()
+      // 1. 本地数据（SQLite 是数据源）——含软删除标记（tombstone），
+      //    否则云端残留的已删除任务会在 LWW 合并时“复活”
+      const localAll = dataAccess.getAllTodos()
+      const localLive = localAll.filter(t => !t.deleted)
 
-      // 2. 云端数据（CRDT 文档）
+      // 2. 云端数据（CRDT 文档，含 deleted 标记）
       let cloudTodos: Todo[] = []
       const cloudData = await this.provider.read(this.CLOUD_FILE)
       if (cloudData) {
@@ -142,16 +144,17 @@ export class SyncEngine {
         cloudTodos = Object.values(snap.todos) as Todo[]
       }
 
-      // 3. LWW 合并：updated_at 更晚者胜，各自独有的都保留
-      const mergedTodos = mergeTodosByUpdatedAt(localTodos, cloudTodos)
-      const changesIncoming = Math.max(0, mergedTodos.length - localTodos.length)
+      // 3. LWW 合并：updated_at 更晚者胜，各自独有的都保留（含 tombstone）
+      const mergedAll = mergeTodosByUpdatedAt(localAll, cloudTodos)
+      const mergedLive = mergedAll.filter(t => !t.deleted)
+      const changesIncoming = Math.max(0, mergedLive.length - localLive.length)
 
-      // 4. 合并结果写回本地 SQLite，并通知 UI 刷新
-      dataAccess.replaceAll(mergedTodos)
+      // 4. 合并结果写回本地 SQLite（保留 tombstone），并通知 UI 刷新
+      dataAccess.replaceAll(mergedAll)
       await dataAccess.save()
 
-      // 5. 合并结果上传云端（云端始终是权威副本）
-      const doc = fromJS({ todos: mergedTodos })
+      // 5. 合并结果上传云端（云端始终是权威副本，含 tombstone 传播删除）
+      const doc = fromJS({ todos: mergedAll })
       await this.provider.write(this.CLOUD_FILE, saveDoc(doc))
 
       // 更新状态
@@ -254,7 +257,7 @@ export class SyncEngine {
 
     try {
       const dataAccess = getDataAccess()
-      const localTodos = dataAccess.getTodos()
+      const localAll = dataAccess.getAllTodos()
 
       let cloudTodos: Todo[] = []
       const cloudData = await this.provider.read(this.CLOUD_FILE)
@@ -264,11 +267,11 @@ export class SyncEngine {
         cloudTodos = Object.values(snap.todos) as Todo[]
       }
 
-      // 与云端做 LWW 合并后写回本地（拉取其他端的数据）
-      const mergedTodos = mergeTodosByUpdatedAt(localTodos, cloudTodos)
-      dataAccess.replaceAll(mergedTodos)
+      // 与云端做 LWW 合并后写回本地（含 tombstone，删除可传播）
+      const mergedAll = mergeTodosByUpdatedAt(localAll, cloudTodos)
+      dataAccess.replaceAll(mergedAll)
       await dataAccess.save()
-      console.log('[SyncEngine] Initial sync completed, todos:', mergedTodos.length)
+      console.log('[SyncEngine] Initial sync completed, todos:', mergedAll.filter(t => !t.deleted).length)
     } catch (err) {
       console.warn('[SyncEngine] Initial sync failed (first time?):', err)
     }

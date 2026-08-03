@@ -28,6 +28,7 @@ export interface TodoRow {
   updated_at: string
   parent_id: string | null // 父任务本地 id
   source_id: string | null // 原始系统（TickTick）taskId，用于稳定匹配
+  deleted: number // 0 or 1，软删除标记（tombstone，用于同步删除传播）
 }
 
 export interface TodoInput {
@@ -45,6 +46,7 @@ export interface TodoInput {
   updatedAt?: string
   parentId?: string
   sourceId?: string
+  deleted?: boolean // 软删除标记（tombstone）
 }
 
 // ============ Schema ============
@@ -65,7 +67,8 @@ CREATE TABLE IF NOT EXISTS todos (
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL,
   parent_id     TEXT,
-  source_id     TEXT
+  source_id     TEXT,
+  deleted       INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_todos_completed ON todos(completed);
@@ -117,6 +120,7 @@ export class TodoDatabase {
     // 迁移：为旧数据库补充新增列（列已存在时忽略报错）
     try { this.db.run('ALTER TABLE todos ADD COLUMN parent_id TEXT') } catch { /* already exists */ }
     try { this.db.run('ALTER TABLE todos ADD COLUMN source_id TEXT') } catch { /* already exists */ }
+    try { this.db.run('ALTER TABLE todos ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0') } catch { /* already exists */ }
     this._ready = true
   }
 
@@ -187,13 +191,14 @@ export class TodoDatabase {
       updated_at: input.updatedAt ?? now,
       parent_id: input.parentId ?? null,
       source_id: input.sourceId ?? null,
+      deleted: input.deleted ? 1 : 0,
     }
     this.db.run(
-      `INSERT INTO todos (id, title, completed, priority, due_date, start_date, content, tags, list_name, is_all_day, completed_time, created_at, updated_at, parent_id, source_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO todos (id, title, completed, priority, due_date, start_date, content, tags, list_name, is_all_day, completed_time, created_at, updated_at, parent_id, source_id, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [row.id, row.title, row.completed, row.priority, row.due_date, row.start_date,
        row.content, row.tags, row.list_name, row.is_all_day, row.completed_time,
-       row.created_at, row.updated_at, row.parent_id, row.source_id],
+       row.created_at, row.updated_at, row.parent_id, row.source_id, row.deleted],
     )
     return row
   }
@@ -234,6 +239,7 @@ export class TodoDatabase {
     if (updates.completedTime !== undefined) { fields.push('completed_time = ?'); values.push(updates.completedTime ?? null) }
     if (updates.parentId !== undefined) { fields.push('parent_id = ?'); values.push(updates.parentId ?? null) }
     if (updates.sourceId !== undefined) { fields.push('source_id = ?'); values.push(updates.sourceId ?? null) }
+    if (updates.deleted !== undefined) { fields.push('deleted = ?'); values.push(updates.deleted ? 1 : 0) }
 
     fields.push('updated_at = ?')
     values.push(new Date().toISOString())

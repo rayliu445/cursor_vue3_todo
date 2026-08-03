@@ -23,11 +23,13 @@ export interface Todo {
   updatedAt?: string
   parentId?: string
   sourceId?: string
+  deleted?: boolean // 软删除标记（tombstone，用于同步删除传播）
 }
 
 export interface DataAccess {
   initialize(): Promise<void>
   getTodos(): Todo[]
+  getAllTodos(): Todo[]
   getTodoById(id: string): Todo | undefined
   addTodo(todo: Partial<Todo> & { title: string }): Todo
   bulkAddTodos(todos: Partial<Todo>[]): Todo[]
@@ -70,6 +72,12 @@ class SqliteDataAccess implements DataAccess {
   }
 
   getTodos(): Todo[] {
+    // 过滤软删除（tombstone），UI 不显示已删除任务
+    return this.db.getAllTodos().map(rowToTodo).filter(t => !t.deleted)
+  }
+
+  /** 获取全部任务（含软删除标记的 tombstone，供同步合并使用） */
+  getAllTodos(): Todo[] {
     return this.db.getAllTodos().map(rowToTodo)
   }
 
@@ -85,6 +93,7 @@ class SqliteDataAccess implements DataAccess {
       content: input.content, tags: input.tags, list: input.list,
       isAllDay: input.isAllDay, completedTime: input.completedTime,
       createdAt: input.createdAt, parentId: input.parentId, sourceId: input.sourceId,
+      deleted: input.deleted,
     })
     this.notify()
     return rowToTodo(row)
@@ -96,7 +105,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: i.dueDate, startDate: i.startDate, content: i.content,
       tags: i.tags, list: i.list, isAllDay: i.isAllDay,
       completedTime: i.completedTime, createdAt: i.createdAt,
-      parentId: i.parentId, sourceId: i.sourceId,
+      parentId: i.parentId, sourceId: i.sourceId, deleted: i.deleted,
     })))
     this.notify()
     return rows.map(rowToTodo)
@@ -112,7 +121,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: t.dueDate, startDate: t.startDate, content: t.content,
       tags: t.tags, list: t.list, isAllDay: t.isAllDay,
       completedTime: t.completedTime, createdAt: t.createdAt, updatedAt: t.updatedAt,
-      parentId: t.parentId, sourceId: t.sourceId,
+      parentId: t.parentId, sourceId: t.sourceId, deleted: t.deleted,
     })))
     this.notify()
   }
@@ -123,7 +132,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: updates.dueDate, startDate: updates.startDate, content: updates.content,
       tags: updates.tags, list: updates.list, isAllDay: updates.isAllDay,
       completedTime: updates.completedTime, parentId: updates.parentId,
-      sourceId: updates.sourceId,
+      sourceId: updates.sourceId, deleted: updates.deleted,
     })
     this.notify()
   }
@@ -255,6 +264,7 @@ function rowToTodo(row: any): Todo {
     updatedAt: row.updated_at ?? undefined,
     parentId: row.parent_id ?? undefined,
     sourceId: row.source_id ?? undefined,
+    deleted: row.deleted === 1,
   }
 }
 

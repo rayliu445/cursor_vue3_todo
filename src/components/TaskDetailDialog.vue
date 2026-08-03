@@ -20,14 +20,14 @@
             ✕
           </button>
         </div>
-        <div class="space-y-4">
+        <div class="space-y-3">
           <!-- 标题 -->
           <div>
             <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标题</label>
             <input
               v-model="editTitle"
               type="text"
-              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
+              class="w-full px-3 py-2 text-base font-medium rounded-lg border outline-none transition-all duration-150"
               :style="{
                 backgroundColor: 'var(--bg-app)',
                 borderColor: 'var(--border-color)',
@@ -35,14 +35,14 @@
               }"
             />
           </div>
-          <!-- 内容 -->
+          <!-- 内容（主要编辑区域，占大空间） -->
           <div>
             <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">内容</label>
             <textarea
               v-model="editContent"
-              rows="4"
+              rows="10"
               placeholder="任务详细内容..."
-              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150 resize-y"
+              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150 resize-y min-h-[220px] leading-relaxed"
               :style="{
                 backgroundColor: 'var(--bg-app)',
                 borderColor: 'var(--border-color)',
@@ -50,24 +50,21 @@
               }"
             ></textarea>
           </div>
-          <!-- 完成状态 -->
-          <div class="flex items-center gap-2">
-            <input
-              id="detail-completed"
-              v-model="editCompleted"
-              type="checkbox"
-              class="checkbox-tick"
-            />
-            <label for="detail-completed" class="text-sm cursor-pointer" :style="{ color: 'var(--text-secondary)' }">已完成</label>
-          </div>
-          <!-- 优先级 -->
-          <div>
-            <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">优先级</label>
-            <div class="flex gap-2">
+          <!-- 完成状态 + 优先级（一行紧凑） -->
+          <div class="flex items-center gap-4">
+            <label class="flex items-center gap-2 text-sm cursor-pointer whitespace-nowrap" :style="{ color: 'var(--text-secondary)' }">
+              <input
+                v-model="editCompleted"
+                type="checkbox"
+                class="checkbox-tick"
+              />
+              已完成
+            </label>
+            <div class="flex-1 flex gap-1.5">
               <button
                 v-for="p in priorityOptions"
                 :key="p.value"
-                class="flex-1 py-2 text-sm rounded-lg transition-all duration-150 font-medium"
+                class="flex-1 py-1.5 text-xs rounded-lg transition-all duration-150 font-medium"
                 :style="getPriorityBtnStyle(p.value, editPriority === p.value)"
                 @click="editPriority = p.value"
               >
@@ -75,33 +72,26 @@
               </button>
             </div>
           </div>
-          <!-- 截止日期 -->
-          <div>
-            <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">截止日期</label>
-            <input
-              v-model="editDueDate"
-              type="date"
-              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-              :style="{
-                backgroundColor: 'var(--bg-app)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }"
-            />
-          </div>
-          <!-- 开始日期 -->
-          <div>
-            <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">开始日期</label>
-            <input
-              v-model="editStartDate"
-              type="date"
-              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-              :style="{
-                backgroundColor: 'var(--bg-app)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }"
-            />
+          <!-- 截止/开始日期（两列紧凑） -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">截止日期</label>
+              <input
+                v-model="editDueDate"
+                type="date"
+                class="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-all duration-150"
+                :style="{ backgroundColor: 'var(--bg-app)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">开始日期</label>
+              <input
+                v-model="editStartDate"
+                type="date"
+                class="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-all duration-150"
+                :style="{ backgroundColor: 'var(--bg-app)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }"
+              />
+            </div>
           </div>
           <!-- 标签 -->
           <div>
@@ -110,27 +100,14 @@
               v-model="editTags"
               type="text"
               placeholder="多个标签用逗号分隔"
-              class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-              :style="{
-                backgroundColor: 'var(--bg-app)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }"
+              class="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-all duration-150"
+              :style="{ backgroundColor: 'var(--bg-app)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }"
             />
           </div>
-          <!-- 清单（只读） -->
-          <div v-if="editList">
-            <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">清单</label>
-            <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
-              {{ editList }}
-            </div>
-          </div>
-          <!-- 创建时间（只读） -->
-          <div v-if="editCreatedAt">
-            <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">创建时间</label>
-            <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
-              {{ formatFullDate(editCreatedAt) }}
-            </div>
+          <!-- 只读信息（清单/创建时间，紧凑一行） -->
+          <div v-if="editList || editCreatedAt" class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs" :style="{ color: 'var(--text-tertiary)' }">
+            <span v-if="editList">清单：{{ editList }}</span>
+            <span v-if="editCreatedAt">创建时间：{{ formatFullDate(editCreatedAt) }}</span>
           </div>
           <!-- 子任务 -->
           <div>
@@ -307,6 +284,8 @@ function initFields(todo: any) {
 }
 
 function close() {
+  // 重置内部切换目标，避免下次打开详情仍显示上次点开的子任务
+  overrideId.value = null
   emit('update:modelValue', false)
 }
 
@@ -354,6 +333,10 @@ async function addSubTask() {
   await todoStore.addTodo({
     title: newSubTaskTitle.value.trim(),
     priority: 0,
+    // 继承父任务的日期：今天/最近7天视图按日期过滤，
+    // 不带日期的子任务会被过滤掉导致“创建了却看不到”
+    dueDate: t.dueDate,
+    startDate: t.startDate,
     parentId: t.id,
   })
   newSubTaskTitle.value = ''
