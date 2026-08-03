@@ -170,25 +170,17 @@
               }"
             />
 
-            <!-- 任务标题 + 内容预览（点击打开详情） -->
-            <div class="flex-1 min-w-0 cursor-pointer" @click="openDetail(todo)">
-              <div
-                class="text-sm truncate"
-                :class="{ 'line-through': todo.completed }"
-                :style="{
-                  color: todo.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                  textDecorationColor: 'var(--text-tertiary)',
-                }"
-              >
-                {{ todo.title }}
-              </div>
-              <div
-                v-if="todo.content"
-                class="text-xs truncate mt-0.5"
-                :style="{ color: 'var(--text-tertiary)' }"
-              >
-                {{ todo.content }}
-              </div>
+            <!-- 任务标题（点击打开详情） -->
+            <div
+              class="flex-1 min-w-0 text-sm truncate cursor-pointer"
+              :class="{ 'line-through': todo.completed }"
+              :style="{
+                color: todo.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                textDecorationColor: 'var(--text-tertiary)',
+              }"
+              @click="openDetail(todo)"
+            >
+              {{ todo.title }}
             </div>
 
             <!-- 截止日期 -->

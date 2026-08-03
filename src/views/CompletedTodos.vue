@@ -53,20 +53,11 @@
               none: !todo.priority || todo.priority === 0,
             }"
           />
-          <span class="flex-1 min-w-0">
-            <span
-              class="block text-sm truncate line-through"
-              :style="{ color: 'var(--text-tertiary)' }"
-            >
-              {{ todo.title }}
-            </span>
-            <span
-              v-if="todo.content"
-              class="block text-xs truncate mt-0.5"
-              :style="{ color: 'var(--text-tertiary)' }"
-            >
-              {{ todo.content }}
-            </span>
+          <span
+            class="flex-1 text-sm truncate line-through"
+            :style="{ color: 'var(--text-tertiary)' }"
+          >
+            {{ todo.title }}
           </span>
           <span
             v-if="todo.completedTime"
