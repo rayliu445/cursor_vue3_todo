@@ -3,6 +3,7 @@
   "version": "0.0.12",
   "scripts": {
     "dev": "vite",
+    "stop": "bash scripts/stop.sh",
     "build": "vite build && node scripts/postbuild.js",
     "lint": "eslint . --ext .js,.ts,.vue",
     "lint:fix": "eslint . --ext .js,.ts,.vue --fix",
