@@ -171,7 +171,7 @@
             />
 
             <!-- 任务标题 + 内容预览（点击打开详情） -->
-            <div class="flex-1 min-w-0 cursor-pointer" @click="startEdit(todo)">
+            <div class="flex-1 min-w-0 cursor-pointer" @click="openDetail(todo)">
               <div
                 class="text-sm truncate"
                 :class="{ 'line-through': todo.completed }"
@@ -206,7 +206,7 @@
                 class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
                 :style="{ color: 'var(--text-tertiary)' }"
                 title="编辑"
-                @click="startEdit(todo)"
+                @click="openDetail(todo)"
               >
                 <AppIcon name="edit" :size="14" />
               </button>
@@ -240,244 +240,18 @@
       </div>
     </div>
 
-    <!-- 任务详情对话框（点击条目进入） -->
-    <transition name="scale">
-      <div
-        v-if="showEditDialog"
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        :style="{ backgroundColor: 'rgba(0,0,0,0.4)' }"
-        @click.self="cancelEdit"
-      >
-        <div
-          class="w-full max-w-md rounded-xl shadow-lg p-6 relative max-h-[85vh] overflow-y-auto"
-          :style="{ backgroundColor: 'var(--bg-card)' }"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-semibold" :style="{ color: 'var(--text-primary)' }">任务详情</h3>
-            <button
-              class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
-              :style="{ color: 'var(--text-tertiary)' }"
-              @click="cancelEdit"
-            >
-              ✕
-            </button>
-          </div>
-          <div class="space-y-4">
-            <!-- 标题 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标题</label>
-              <input
-                v-model="editTitle"
-                type="text"
-                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-                :style="{
-                  backgroundColor: 'var(--bg-app)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }"
-              />
-            </div>
-            <!-- 内容 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">内容</label>
-              <textarea
-                v-model="editContent"
-                rows="4"
-                placeholder="任务详细内容..."
-                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150 resize-y"
-                :style="{
-                  backgroundColor: 'var(--bg-app)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }"
-              ></textarea>
-            </div>
-            <!-- 完成状态 -->
-            <div class="flex items-center gap-2">
-              <input
-                id="detail-completed"
-                v-model="editCompleted"
-                type="checkbox"
-                class="checkbox-tick"
-              />
-              <label for="detail-completed" class="text-sm cursor-pointer" :style="{ color: 'var(--text-secondary)' }">已完成</label>
-            </div>
-            <!-- 优先级 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">优先级</label>
-              <div class="flex gap-2">
-                <button
-                  v-for="p in priorityOptions"
-                  :key="p.value"
-                  class="flex-1 py-2 text-sm rounded-lg transition-all duration-150 font-medium"
-                  :style="getPriorityBtnStyle(p.value, editPriority === p.value)"
-                  @click="editPriority = p.value"
-                >
-                  {{ p.label }}
-                </button>
-              </div>
-            </div>
-            <!-- 截止日期 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">截止日期</label>
-              <input
-                v-model="editDueDate"
-                type="date"
-                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-                :style="{
-                  backgroundColor: 'var(--bg-app)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }"
-              />
-            </div>
-            <!-- 开始日期 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">开始日期</label>
-              <input
-                v-model="editStartDate"
-                type="date"
-                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-                :style="{
-                  backgroundColor: 'var(--bg-app)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }"
-              />
-            </div>
-            <!-- 标签 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标签</label>
-              <input
-                v-model="editTags"
-                type="text"
-                placeholder="多个标签用逗号分隔"
-                class="w-full px-3 py-2 text-sm rounded-lg border outline-none transition-all duration-150"
-                :style="{
-                  backgroundColor: 'var(--bg-app)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }"
-              />
-            </div>
-            <!-- 清单（只读） -->
-            <div v-if="editList">
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">清单</label>
-              <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
-                {{ editList }}
-              </div>
-            </div>
-            <!-- 创建时间（只读） -->
-            <div v-if="editCreatedAt">
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">创建时间</label>
-              <div class="text-sm px-3 py-2 rounded-lg" :style="{ backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }">
-                {{ formatFullDate(editCreatedAt) }}
-              </div>
-            </div>
-            <!-- 子任务 -->
-            <div>
-              <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">子任务</label>
-              <div v-if="subTasks.length > 0" class="space-y-1">
-                <div
-                  v-for="st in subTasks"
-                  :key="st.id"
-                  class="flex items-center gap-2 px-2 py-1.5 rounded"
-                  :style="{ backgroundColor: 'var(--bg-hover)' }"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="st.completed"
-                    class="checkbox-tick"
-                    @change="todoStore.toggleTodo(st.id)"
-                  />
-                  <span
-                    class="flex-1 text-sm truncate cursor-pointer"
-                    :style="{
-                      color: 'var(--text-primary)',
-                      textDecoration: st.completed ? 'line-through' : 'none',
-                    }"
-                    @click="startEdit(st)"
-                  >
-                    {{ st.title }}
-                  </span>
-                  <button
-                    class="icon-btn w-6 h-6 flex items-center justify-center rounded"
-                    :style="{ color: 'var(--text-tertiary)' }"
-                    title="删除子任务"
-                    @click="deleteSubTask(st)"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <div v-else class="text-xs" :style="{ color: 'var(--text-tertiary)' }">暂无子任务</div>
-              <div class="flex gap-2 mt-2">
-                <input
-                  v-model="newSubTaskTitle"
-                  type="text"
-                  placeholder="添加子任务..."
-                  class="flex-1 px-3 py-1.5 text-sm rounded-lg border outline-none transition-all duration-150"
-                  :style="{
-                    backgroundColor: 'var(--bg-app)',
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-primary)',
-                  }"
-                  @keyup.enter="addSubTask"
-                />
-                <button
-                  class="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-150"
-                  :style="{
-                    backgroundColor: 'var(--color-accent-light)',
-                    color: 'var(--text-primary)',
-                  }"
-                  @click="addSubTask"
-                >
-                  添加
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-between gap-2 mt-6">
-            <button
-              class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
-              :style="{ backgroundColor: 'var(--bg-hover)', color: '#e74c3c' }"
-              @click="deleteFromDetail"
-            >
-              删除
-            </button>
-            <div class="flex gap-2">
-              <button
-                class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
-                :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }"
-                @click="cancelEdit"
-              >
-                取消
-              </button>
-              <button
-                class="px-4 py-2 text-sm rounded-lg transition-all duration-150"
-                :style="{
-                  backgroundColor: 'var(--color-accent-light)',
-                  color: 'var(--text-primary)',
-                  fontWeight: 500,
-                }"
-                @click="confirmEdit"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <!-- 任务详情对话框（点击条目进入，共享组件） -->
+    <TaskDetailDialog v-model="showDetail" :todo-id="detailId" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { useTodoStore } from '../stores/todo'
+import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
+import TaskDetailDialog from '../components/TaskDetailDialog.vue'
 
 const route = useRoute()
 const todoStore = useTodoStore()
@@ -579,11 +353,11 @@ function clearSearch() {
 
 // ============ 任务过滤 ============
 const filteredTodos = computed(() => {
-  // 搜索视图：全量搜索（含已完成）
+  // 搜索视图：全量搜索（含已完成），并按父子层级排序
   if (currentView.value === 'search') {
     const query = searchQuery.value.toLowerCase().trim()
     if (!query) return []
-    return todos.value.filter(t => t.title.toLowerCase().includes(query))
+    return sortWithHierarchy(todos.value.filter(t => t.title.toLowerCase().includes(query)))
   }
 
   // 其他视图按视图过滤（不受搜索词影响）
@@ -610,8 +384,8 @@ const filteredTodos = computed(() => {
       list = list.filter(t => !t.completed)
   }
 
-  // 搜索过滤
-  return list
+  // 层级排序：父任务在前，子任务紧跟其后
+  return sortWithHierarchy(list)
 })
 
 // ============ 操作 ============
@@ -636,109 +410,12 @@ async function deleteTodo(id: string) {
   }
 }
 
-// ============ 任务详情对话框 ============
-const showEditDialog = ref(false)
-const editTarget = ref<{
-  id: string; title: string; completed: boolean; priority: number;
-  dueDate?: string; startDate?: string; content?: string; tags?: string[];
-  list?: string; createdAt?: string;
-} | null>(null)
-const editTitle = ref('')
-const editContent = ref('')
-const editPriority = ref<0 | 1 | 3 | 5>(0)
-const editDueDate = ref('')
-const editStartDate = ref('')
-const editTags = ref('')
-const editCompleted = ref(false)
-const editList = ref('')
-const editCreatedAt = ref('')
-
-function startEdit(todo: any) {
-  editTarget.value = {
-    id: todo.id, title: todo.title, completed: !!todo.completed,
-    priority: todo.priority ?? 0, dueDate: todo.dueDate,
-    startDate: todo.startDate, content: todo.content,
-    tags: todo.tags ?? [], list: todo.list ?? '', createdAt: todo.createdAt,
-  }
-  editTitle.value = todo.title ?? ''
-  editContent.value = todo.content ?? ''
-  editPriority.value = (todo.priority ?? 0) as 0 | 1 | 3 | 5
-  editDueDate.value = todo.dueDate ? todo.dueDate.slice(0, 10) : ''
-  editStartDate.value = todo.startDate ? todo.startDate.slice(0, 10) : ''
-  editTags.value = (todo.tags ?? []).join(', ')
-  editCompleted.value = !!todo.completed
-  editList.value = todo.list ?? ''
-  editCreatedAt.value = todo.createdAt ?? ''
-  showEditDialog.value = true
-}
-
-async function confirmEdit() {
-  if (!editTarget.value || !editTitle.value.trim()) return
-  const target = editTarget.value
-  const updates: Record<string, any> = {
-    title: editTitle.value.trim(),
-    content: editContent.value.trim() || undefined,
-    priority: editPriority.value,
-    dueDate: editDueDate.value ? new Date(editDueDate.value).toISOString() : undefined,
-    startDate: editStartDate.value ? new Date(editStartDate.value).toISOString() : undefined,
-    tags: editTags.value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
-    completed: editCompleted.value,
-  }
-  // 完成状态变化时维护完成时间
-  if (editCompleted.value && !target.completed) {
-    updates.completedTime = new Date().toISOString()
-  } else if (!editCompleted.value && target.completed) {
-    updates.completedTime = undefined
-  }
-  await todoStore.updateTodo(target.id, updates)
-  showEditDialog.value = false
-  editTarget.value = null
-}
-
-function cancelEdit() {
-  showEditDialog.value = false
-  editTarget.value = null
-}
-
-async function deleteFromDetail() {
-  if (!editTarget.value) return
-  if (confirm('确定要删除这个任务吗？')) {
-    await removeTodo(editTarget.value.id)
-    showEditDialog.value = false
-    editTarget.value = null
-  }
-}
-
-// ============ 子任务 ============
-const newSubTaskTitle = ref('')
-const subTasks = computed(() => {
-  if (!editTarget.value) return []
-  return todos.value.filter(t => t.parentId === editTarget.value.id)
-})
-
-async function addSubTask() {
-  if (!editTarget.value || !newSubTaskTitle.value.trim()) return
-  await todoStore.addTodo({
-    title: newSubTaskTitle.value.trim(),
-    priority: 0,
-    parentId: editTarget.value.id,
-  })
-  newSubTaskTitle.value = ''
-}
-
-async function deleteSubTask(t: any) {
-  if (confirm('确定要删除这个子任务吗？')) {
-    await removeTodo(t.id)
-  }
-}
-
-// ============ 工具函数 ============
-function formatFullDate(dateStr: string) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return dateStr
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+// ============ 任务详情对话框（共享组件） ============
+const showDetail = ref(false)
+const detailId = ref<string | null>(null)
+function openDetail(todo: any) {
+  detailId.value = todo.id
+  showDetail.value = true
 }
 
 // ============ 工具函数 ============

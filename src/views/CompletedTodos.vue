@@ -22,13 +22,26 @@
         <div
           v-for="todo in completedTodos"
           :key="todo.id"
-          class="flex items-center gap-3 px-6 py-3 transition-all duration-150"
-          :style="{ borderBottom: '1px solid var(--border-color)' }"
+          class="flex items-center gap-3 px-6 py-3 transition-all duration-150 cursor-pointer"
+          :style="{
+            borderBottom: '1px solid var(--border-color)',
+            paddingLeft: todo.parentId ? '3.5rem' : '1.5rem',
+          }"
+          @click="openDetail(todo)"
         >
+          <span
+            v-if="todo.parentId"
+            class="text-xs flex-shrink-0"
+            :style="{ color: 'var(--text-tertiary)' }"
+            title="子任务"
+          >
+            ↳
+          </span>
           <input
             type="checkbox"
             :checked="todo.completed"
             class="checkbox-tick"
+            @click.stop
             @change="handleToggle(todo.id)"
           />
           <span
@@ -40,11 +53,20 @@
               none: !todo.priority || todo.priority === 0,
             }"
           />
-          <span
-            class="flex-1 text-sm line-through"
-            :style="{ color: 'var(--text-tertiary)' }"
-          >
-            {{ todo.title }}
+          <span class="flex-1 min-w-0">
+            <span
+              class="block text-sm truncate line-through"
+              :style="{ color: 'var(--text-tertiary)' }"
+            >
+              {{ todo.title }}
+            </span>
+            <span
+              v-if="todo.content"
+              class="block text-xs truncate mt-0.5"
+              :style="{ color: 'var(--text-tertiary)' }"
+            >
+              {{ todo.content }}
+            </span>
           </span>
           <span
             v-if="todo.completedTime"
@@ -77,22 +99,35 @@
         <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">还没有已完成的任务</p>
       </div>
     </div>
+
+    <!-- 任务详情对话框（点击条目进入） -->
+    <TaskDetailDialog v-model="showDetail" :todo-id="detailId" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { useTodoStore } from '../stores/todo'
+import { computed, onMounted, ref } from 'vue'
+import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
+import TaskDetailDialog from '../components/TaskDetailDialog.vue'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 const { fetchTodos, removeTodo, toggleTodo } = todoStore
 
 const completedTodos = computed(() => {
-  return todos.value.filter(todo => todo.completed)
+  // 层级排序：父任务在前，已完成子任务紧跟其后
+  return sortWithHierarchy(todos.value.filter(todo => todo.completed))
 })
+
+// 任务详情对话框
+const showDetail = ref(false)
+const detailId = ref<string | null>(null)
+function openDetail(todo: { id: string }) {
+  detailId.value = todo.id
+  showDetail.value = true
+}
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)

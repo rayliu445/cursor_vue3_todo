@@ -7,6 +7,32 @@ import { getSyncEngine } from '../services/sync-engine'
 // Todo类型定义（保持向前兼容，与 CRDTTodo 等价）
 export type Todo = CRDTTodo
 
+/**
+ * 层级排序：顶层任务保持原顺序，每个顶层任务后紧跟其子任务。
+ * 用于列表/已完成/搜索视图，保证父任务在子任务上方。
+ */
+export function sortWithHierarchy<T extends { id: string; parentId?: string }>(list: T[]): T[] {
+  const byId = new Map(list.map(t => [t.id, t]))
+  const children = new Map<string, T[]>()
+  const roots: T[] = []
+  for (const t of list) {
+    if (t.parentId && byId.has(t.parentId)) {
+      const arr = children.get(t.parentId) ?? []
+      arr.push(t)
+      children.set(t.parentId, arr)
+    } else {
+      roots.push(t)
+    }
+  }
+  const result: T[] = []
+  for (const root of roots) {
+    result.push(root)
+    const subs = children.get(root.id)
+    if (subs) result.push(...subs)
+  }
+  return result
+}
+
 // 数据层变化订阅标记（避免重复订阅）
 let syncRefreshSubscribed = false
 
