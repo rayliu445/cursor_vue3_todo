@@ -141,12 +141,12 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* 自定义复选框 */
+/* 自定义复选框（圆角方形） */
 .checkbox-tick {
   appearance: none;
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: 5px;
   cursor: pointer;
   transition: all 150ms ease;
   flex-shrink: 0;
@@ -161,10 +161,10 @@ input:focus, select:focus, textarea:focus {
 .checkbox-tick:checked::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 5px;
-  width: 4px;
-  height: 8px;
+  top: 4px;
+  left: 6px;
+  width: 3px;
+  height: 7px;
   border: solid white;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);

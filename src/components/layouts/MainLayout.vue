@@ -214,8 +214,8 @@ const next7Count = computed(() => {
   const today = new Date()
   const next7 = new Date(today)
   next7.setDate(next7.getDate() + 7)
-  const todayStr = today.toISOString().slice(0, 10)
-  const next7Str = next7.toISOString().slice(0, 10)
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const next7Str = `${next7.getFullYear()}-${String(next7.getMonth() + 1).padStart(2, '0')}-${String(next7.getDate()).padStart(2, '0')}`
   return todos.value.filter(t => {
     if (!t.dueDate || t.completed) return false
     return t.dueDate >= todayStr && t.dueDate <= next7Str

@@ -130,96 +130,125 @@
 
     <!-- ===== 任务列表 (可滚动) ===== -->
     <div class="flex-1 overflow-y-auto">
-      <div v-if="filteredTodos.length > 0" class="py-2">
+      <div v-if="displayRows.length > 0" class="py-2">
         <transition-group name="list" tag="div">
           <div
-            v-for="todo in filteredTodos"
-            :key="todo.id"
-            class="group flex items-center gap-3 px-6 py-1.5 transition-all duration-150 cursor-pointer"
-            :style="{
-              backgroundColor: 'transparent',
-              borderBottom: '1px solid var(--border-color)',
-              paddingLeft: todo.parentId ? '3.5rem' : '1.5rem',
-            }"
+            v-for="row in displayRows"
+            :key="row.kind === 'header' ? 'h-' + row.group : row.todo!.id"
           >
-            <!-- 子任务标记 -->
-            <span
-              v-if="todo.parentId"
-              class="text-xs flex-shrink-0"
-              :style="{ color: 'var(--text-tertiary)' }"
-              title="子任务"
-            >
-              ↳
-            </span>
-            <!-- 折叠按钮（父任务有关联子任务时显示） -->
-            <button
-              v-if="hasChildren(todo)"
-              class="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded cursor-pointer"
-              :style="{ color: 'var(--text-tertiary)' }"
-              :title="expandedParents.has(todo.id) ? '收起子任务' : '展开子任务'"
-              @click.stop="toggleExpand(todo.id)"
-            >
-              {{ expandedParents.has(todo.id) ? '▼' : '▶' }}
-            </button>
-            <!-- 复选框 -->
-            <input
-              type="checkbox"
-              :checked="todo.completed"
-              class="checkbox-tick"
-              @change="todoStore.toggleTodo(todo.id)"
-            />
-
-            <!-- 优先级圆点 -->
-            <span
-              class="priority-dot"
-              :class="{
-                high: todo.priority === 5,
-                medium: todo.priority === 3,
-                low: todo.priority === 1,
-                none: !todo.priority || todo.priority === 0,
-              }"
-            />
-
-            <!-- 任务标题（点击打开详情） -->
+            <!-- 组头（今天/最近7天视图：未完成/已完成） -->
             <div
-              class="flex-1 min-w-0 text-sm truncate cursor-pointer"
-              :class="{ 'line-through': todo.completed }"
+              v-if="row.kind === 'header'"
+              class="flex items-center gap-2 px-6 py-1.5 cursor-pointer select-none"
               :style="{
-                color: todo.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                textDecorationColor: 'var(--text-tertiary)',
+                backgroundColor: 'var(--bg-hover)',
+                borderBottom: '1px solid var(--border-color)',
               }"
-              @click="openDetail(todo)"
+              @click="toggleGroup(row.group!)"
             >
-              {{ todo.title }}
+              <AppIcon
+                :name="groupCollapsed[row.group!] ? 'chevronRight' : 'chevronDown'"
+                :size="13"
+              />
+              <span class="text-xs font-medium" :style="{ color: 'var(--text-secondary)' }">
+                {{ row.label }}
+              </span>
+              <span class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
+                {{ row.count }}
+              </span>
             </div>
-
-            <!-- 截止日期 -->
-            <span
-              v-if="todo.dueDate"
-              class="text-xs flex-shrink-0"
-              :style="{ color: 'var(--text-tertiary)' }"
+            <!-- 任务行 -->
+            <div
+              v-else
+              class="group flex items-center gap-3 px-6 py-1.5 transition-all duration-150 cursor-pointer"
+              :style="{
+                backgroundColor: 'transparent',
+                borderBottom: '1px solid var(--border-color)',
+                paddingLeft: row.todo!.parentId ? '3.5rem' : '1.5rem',
+              }"
             >
-              {{ formatDate(todo.dueDate) }}
-            </span>
+              <!-- 子任务标记 -->
+              <span
+                v-if="row.todo!.parentId"
+                class="text-xs flex-shrink-0"
+                :style="{ color: 'var(--text-tertiary)' }"
+                title="子任务"
+              >
+                ↳
+              </span>
+              <!-- 折叠按钮（父任务有关联子任务时显示） -->
+              <button
+                v-if="hasChildren(row.todo)"
+                class="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded cursor-pointer"
+                :style="{ color: 'var(--text-tertiary)' }"
+                :title="expandedParents.has(row.todo!.id) ? '收起子任务' : '展开子任务'"
+                @click.stop="toggleExpand(row.todo!.id)"
+              >
+                <AppIcon
+                  :name="expandedParents.has(row.todo!.id) ? 'chevronDown' : 'chevronRight'"
+                  :size="13"
+                />
+              </button>
+              <!-- 复选框 -->
+              <input
+                type="checkbox"
+                :checked="row.todo!.completed"
+                class="checkbox-tick"
+                @change="todoStore.toggleTodo(row.todo!.id)"
+              />
 
-            <!-- 悬停操作按钮 -->
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-              <button
-                class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
-                :style="{ color: 'var(--text-tertiary)' }"
-                title="编辑"
-                @click="openDetail(todo)"
+              <!-- 优先级圆点 -->
+              <span
+                class="priority-dot"
+                :class="{
+                  high: row.todo!.priority === 5,
+                  medium: row.todo!.priority === 3,
+                  low: row.todo!.priority === 1,
+                  none: !row.todo!.priority || row.todo!.priority === 0,
+                }"
+              />
+
+              <!-- 任务标题（点击打开详情） -->
+              <div
+                class="flex-1 min-w-0 text-sm truncate cursor-pointer"
+                :class="{ 'line-through': row.todo!.completed }"
+                :style="{
+                  color: row.todo!.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                  textDecorationColor: 'var(--text-tertiary)',
+                }"
+                @click="openDetail(row.todo)"
               >
-                <AppIcon name="edit" :size="14" />
-              </button>
-              <button
-                class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
+                {{ row.todo!.title }}
+              </div>
+
+              <!-- 截止日期 -->
+              <span
+                v-if="row.todo!.dueDate"
+                class="text-xs flex-shrink-0"
                 :style="{ color: 'var(--text-tertiary)' }"
-                title="删除"
-                @click="deleteTodo(todo.id)"
               >
-                <AppIcon name="delete" :size="14" />
-              </button>
+                {{ formatDate(row.todo!.dueDate) }}
+              </span>
+
+              <!-- 悬停操作按钮 -->
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <button
+                  class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
+                  :style="{ color: 'var(--text-tertiary)' }"
+                  title="编辑"
+                  @click="openDetail(row.todo)"
+                >
+                  <AppIcon name="edit" :size="14" />
+                </button>
+                <button
+                  class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
+                  :style="{ color: 'var(--text-tertiary)' }"
+                  title="删除"
+                  @click="deleteTodo(row.todo!.id)"
+                >
+                  <AppIcon name="delete" :size="14" />
+                </button>
+              </div>
             </div>
           </div>
         </transition-group>
@@ -391,20 +420,20 @@ const filteredTodos = computed(() => {
   // 其他视图按视图过滤（不受搜索词影响）
   let list = todos.value
 
-  // 按视图过滤
-  const today = new Date()
-  const todayStr = today.toISOString().slice(0, 10)
-  const next7 = new Date(today)
+  // 按视图过滤（使用本地日期，避免 UTC 跨日错位）
+  const todayStr = toLocalDateStr(new Date())
+  const next7 = new Date()
   next7.setDate(next7.getDate() + 7)
-  const next7Str = next7.toISOString().slice(0, 10)
+  const next7Str = toLocalDateStr(next7)
 
   switch (currentView.value) {
     case 'today':
-      list = list.filter(t => !t.completed && t.dueDate && t.dueDate.startsWith(todayStr))
+      // 今天视图：含未完成 + 已完成（由 displayRows 分组显示）
+      list = list.filter(t => t.dueDate && t.dueDate.startsWith(todayStr))
       break
     case 'next7':
       list = list.filter(t => {
-        if (!t.dueDate || t.completed) return false
+        if (!t.dueDate) return false
         return t.dueDate >= todayStr && t.dueDate <= next7Str
       })
       break
@@ -414,6 +443,44 @@ const filteredTodos = computed(() => {
 
   // 层级排序 + 折叠过滤：父任务在前，子任务紧跟其后（未展开时隐藏）
   return applyCollapse(sortWithHierarchy(list))
+})
+
+// ============ 今天/最近7天视图分组（未完成 / 已完成） ============
+const groupCollapsed = ref<{ pending: boolean; completed: boolean }>({
+  pending: false,
+  completed: true,
+})
+
+function toggleGroup(g: 'pending' | 'completed') {
+  groupCollapsed.value = { ...groupCollapsed.value, [g]: !groupCollapsed.value[g] }
+}
+
+interface DisplayRow {
+  kind: 'header' | 'todo'
+  group?: 'pending' | 'completed'
+  label?: string
+  count?: number
+  todo?: Todo
+}
+
+// 统一渲染行：今天/最近7天视图为「未完成/已完成」分组 + 组头；其他视图为平铺任务
+const displayRows = computed<DisplayRow[]>(() => {
+  const isGrouped = currentView.value === 'today' || currentView.value === 'next7'
+  if (!isGrouped) {
+    return filteredTodos.value.map(t => ({ kind: 'todo' as const, todo: t }))
+  }
+  const pending = applyCollapse(sortWithHierarchy(filteredTodos.value.filter(t => !t.completed)))
+  const completed = applyCollapse(sortWithHierarchy(filteredTodos.value.filter(t => t.completed)))
+  const rows: DisplayRow[] = []
+  if (pending.length > 0) {
+    rows.push({ kind: 'header', group: 'pending', label: '未完成', count: pending.length })
+    if (!groupCollapsed.value.pending) rows.push(...pending.map(t => ({ kind: 'todo' as const, todo: t })))
+  }
+  if (completed.length > 0) {
+    rows.push({ kind: 'header', group: 'completed', label: '已完成', count: completed.length })
+    if (!groupCollapsed.value.completed) rows.push(...completed.map(t => ({ kind: 'todo' as const, todo: t })))
+  }
+  return rows
 })
 
 // ============ 操作 ============
@@ -447,16 +514,21 @@ function openDetail(todo: any) {
 }
 
 // ============ 工具函数 ============
+function toLocalDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
   const month = d.getMonth() + 1
   const day = d.getDate()
-  const today = new Date()
-  const tomorrow = new Date(today)
+  const todayStr = toLocalDateStr(new Date())
+  const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowStr = toLocalDateStr(tomorrow)
   
-  if (dateStr.startsWith(today.toISOString().slice(0, 10))) return '今天'
-  if (dateStr.startsWith(tomorrow.toISOString().slice(0, 10))) return '明天'
+  if (dateStr.startsWith(todayStr)) return '今天'
+  if (dateStr.startsWith(tomorrowStr)) return '明天'
   return `${month}/${day}`
 }
 

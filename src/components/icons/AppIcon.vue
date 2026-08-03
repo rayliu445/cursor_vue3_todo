@@ -247,6 +247,12 @@ const icons: Record<string, IconDef> = {
     paths: ['M9 18l6-6-6-6'],
   },
 
+  // ▼ 下箭头
+  chevronDown: {
+    viewBox: '0 0 24 24',
+    paths: ['M6 9l6 6 6-6'],
+  },
+
   // 四象限 - 重要紧急 红色
   quadrantUrgent: {
     viewBox: '0 0 24 24',

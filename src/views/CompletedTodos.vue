@@ -45,7 +45,10 @@
             :title="expandedParents.has(todo.id) ? '收起子任务' : '展开子任务'"
             @click.stop="toggleExpand(todo.id)"
           >
-            {{ expandedParents.has(todo.id) ? '▼' : '▶' }}
+            <AppIcon
+              :name="expandedParents.has(todo.id) ? 'chevronDown' : 'chevronRight'"
+              :size="13"
+            />
           </button>
           <input
             type="checkbox"
