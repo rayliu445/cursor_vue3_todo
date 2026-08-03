@@ -535,15 +535,13 @@ function compareVersions(a, b) {
   return 0
 }
 
-/** HTTPS GET 返回 JSON */
-function httpsGetJson(url) {
+/** HTTPS GET 返回文本 */
+function httpsGetText(url) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'TinyDo' } }, (res) => {
       let body = ''
       res.on('data', (c) => { body += c })
-      res.on('end', () => {
-        try { resolve(JSON.parse(body)) } catch (e) { reject(e) }
-      })
+      res.on('end', () => resolve(body))
     }).on('error', reject)
   })
 }
@@ -567,18 +565,20 @@ function downloadFile(url, dest, onProgress) {
   })
 }
 
-/** 检查更新：对比 GitHub 最新 release 与当前版本 */
+/** 检查更新：读取仓库最新版本号。
+ *  用 raw.githubusercontent.com（CDN，无 GitHub API 限流），
+ *  避免未认证 API 60次/小时限流（403 时拿不到版本号会误判"已是最新"）。 */
 ipcMain.handle('check-for-update', async () => {
   const currentVersion = app.getVersion()
   try {
-    const release = await httpsGetJson(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`)
-    const latestVersion = String(release.tag_name || '').replace(/^v/, '')
-    const downloadUrl = (release.assets || [])
-      .find((a) => /mac/.test(a.name) && /\.dmg$/.test(a.name))?.browser_download_url
+    const pkgText = await httpsGetText(`https://raw.githubusercontent.com/${UPDATE_REPO}/main/package.json`)
+    const pkg = JSON.parse(pkgText)
+    const latestVersion = String(pkg.version || '').replace(/^v/, '')
+    const downloadUrl = `https://github.com/${UPDATE_REPO}/releases/download/v${latestVersion}/TinyDo-mac-arm64.dmg`
     return {
       currentVersion,
       latestVersion,
-      hasUpdate: !!(latestVersion && downloadUrl && compareVersions(latestVersion, currentVersion) > 0),
+      hasUpdate: !!(latestVersion && compareVersions(latestVersion, currentVersion) > 0),
       downloadUrl,
     }
   } catch (err) {
