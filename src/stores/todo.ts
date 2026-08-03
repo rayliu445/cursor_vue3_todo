@@ -4,8 +4,8 @@ import { getDataAccess } from '../services/data-access'
 import type { CRDTTodo } from '../services/crdt-doc'
 import { getSyncEngine } from '../services/sync-engine'
 
-// Todo类型定义（保持向前兼容）
-export interface Todo extends CRDTTodo {}
+// Todo类型定义（保持向前兼容，与 CRDTTodo 等价）
+export type Todo = CRDTTodo
 
 // 数据层变化订阅标记（避免重复订阅）
 let syncRefreshSubscribed = false
