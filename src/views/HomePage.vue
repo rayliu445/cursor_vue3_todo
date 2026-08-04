@@ -185,6 +185,7 @@
                 borderBottom: '1px solid var(--border-color)',
                 paddingLeft: row.todo!.parentId ? '3.5rem' : '1.5rem',
               }"
+              @contextmenu.prevent="onTodoContextMenu($event, row.todo)"
             >
               <!-- 子任务标记 -->
               <span
@@ -298,6 +299,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
+import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
 
 const route = useRoute()
 const router = useRouter()
@@ -558,6 +560,30 @@ async function deleteTodo(id: string) {
   if (confirm('确定要删除这个任务吗？')) {
     await removeTodo(id)
   }
+}
+
+// 右键快捷菜单（任务行）
+function onTodoContextMenu(e: MouseEvent, todo: any) {
+  const items: ContextMenuItem[] = [
+    {
+      label: todo.kind === 'NOTE' ? '转为任务' : '转为笔记',
+      icon: 'notes',
+      handler: () => todoStore.convertKind(todo.id, todo.kind === 'NOTE' ? 'TASK' : 'NOTE'),
+    },
+  ]
+  // 任务支持标记完成/未完成（笔记没有完成概念）
+  if (todo.kind !== 'NOTE') {
+    items.push({
+      label: todo.completed ? '标记未完成' : '标记完成',
+      icon: 'star',
+      handler: () => todoStore.toggleTodo(todo.id),
+    })
+  }
+  items.push(
+    { label: '编辑', icon: 'edit', handler: () => openDetail(todo) },
+    { label: '删除', icon: 'delete', danger: true, handler: () => deleteTodo(todo.id) },
+  )
+  showContextMenu(e, items)
 }
 
 // ============ 任务详情（右侧第四列面板，全局共享） ============

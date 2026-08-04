@@ -189,6 +189,9 @@
       <!-- 第四列：详情面板（选中任务时显示） -->
       <TaskDetailPanel />
     </main>
+
+    <!-- 全局右键快捷菜单 -->
+    <ContextMenu />
   </div>
 </template>
 
@@ -199,6 +202,7 @@ import { useTodoStore } from '../../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../icons/AppIcon.vue'
 import TaskDetailPanel from '../TaskDetailPanel.vue'
+import ContextMenu from '../ContextMenu.vue'
 
 const route = useRoute()
 const router = useRouter()

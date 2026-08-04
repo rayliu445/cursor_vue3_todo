@@ -386,6 +386,31 @@ export const useTodoStore = defineStore('todo', () => {
     selectedTodoId.value = null
   }
 
+  // ============ 类型转化（任务 ↔ 笔记） ============
+  // 笔记不关联子任务：转笔记时解除自身父任务关系与所有子任务关系
+  async function convertKind(id: string, kind: 'TASK' | 'NOTE') {
+    try {
+      const da = getDA()
+      const todo = todos.value.find(t => t.id === id)
+      if (!todo || todo.kind === kind) return
+      const updates: Record<string, any> = { kind }
+      if (kind === 'NOTE') {
+        // 解除自身父任务关系
+        if (todo.parentId) updates.parentId = null
+        // 解除所有子任务关系（后代成为独立任务，避免笔记下隐藏子任务）
+        const children = todos.value.filter(t => t.parentId === id)
+        for (const c of children) {
+          da.updateTodo(c.id, { parentId: null } as any)
+        }
+      }
+      da.updateTodo(id, updates)
+      refreshTodos()
+      getSyncEngine().scheduleWrite()
+    } catch (err) {
+      console.error('类型转化失败:', err)
+    }
+  }
+
   return {
     todos,
     loading,
@@ -403,5 +428,6 @@ export const useTodoStore = defineStore('todo', () => {
     selectedTodoId,
     openDetail,
     closeDetail,
+    convertKind,
   }
 })

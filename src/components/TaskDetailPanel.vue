@@ -116,8 +116,8 @@
         <span v-if="editList">清单：{{ editList }}</span>
         <span v-if="editCreatedAt">创建时间：{{ formatFullDate(editCreatedAt) }}</span>
       </div>
-      <!-- 子任务 -->
-      <div>
+      <!-- 子任务（笔记不关联子任务） -->
+      <div v-if="!isNote">
         <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">子任务</label>
         <div v-if="subTasks.length > 0" class="space-y-1">
           <div

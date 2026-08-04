@@ -28,6 +28,7 @@
             paddingLeft: todo.parentId ? '3.5rem' : '1.5rem',
           }"
           @click="openDetail(todo)"
+          @contextmenu.prevent="onTodoContextMenu($event, todo)"
         >
           <span
             v-if="todo.parentId"
@@ -111,6 +112,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
+import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
@@ -148,6 +150,21 @@ const completedTodos = computed(() => {
 // 任务详情（右侧第四列面板，全局共享）
 function openDetail(todo: { id: string }) {
   todoStore.openDetail(todo.id)
+}
+
+// 右键快捷菜单（已完成任务条目）
+function onTodoContextMenu(e: MouseEvent, todo: any) {
+  const items: ContextMenuItem[] = [
+    {
+      label: '转为笔记',
+      icon: 'notes',
+      handler: () => todoStore.convertKind(todo.id, 'NOTE'),
+    },
+    { label: '标记未完成', icon: 'star', handler: () => toggleTodo(todo.id) },
+    { label: '编辑', icon: 'edit', handler: () => openDetail(todo) },
+    { label: '删除', icon: 'delete', danger: true, handler: () => deleteTodo(todo.id) },
+  ]
+  showContextMenu(e, items)
 }
 
 function formatDate(dateStr: string) {

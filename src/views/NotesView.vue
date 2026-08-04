@@ -67,6 +67,7 @@
             backgroundColor: 'transparent',
           }"
           @click="openDetail(note)"
+          @contextmenu.prevent="onNoteContextMenu($event, note)"
         >
           <span class="flex-shrink-0 flex items-center mt-0.5" :style="{ color: 'var(--text-tertiary)' }">
             <AppIcon name="notes" :size="16" />
@@ -120,6 +121,7 @@ import { ref, computed, nextTick, onMounted } from 'vue'
 import { useTodoStore } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
+import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
@@ -165,6 +167,20 @@ async function removeNote(note: any) {
 // 详情（右侧第四列面板，全局共享）
 function openDetail(note: any) {
   todoStore.openDetail(note.id)
+}
+
+// 右键快捷菜单（笔记条目）
+function onNoteContextMenu(e: MouseEvent, note: any) {
+  const items: ContextMenuItem[] = [
+    {
+      label: '转为任务',
+      icon: 'today',
+      handler: () => todoStore.convertKind(note.id, 'TASK'),
+    },
+    { label: '编辑', icon: 'edit', handler: () => openDetail(note) },
+    { label: '删除', icon: 'delete', danger: true, handler: () => removeNote(note) },
+  ]
+  showContextMenu(e, items)
 }
 
 onMounted(() => {
