@@ -289,9 +289,6 @@
         </p>
       </div>
     </div>
-
-    <!-- 任务详情对话框（点击条目进入，共享组件） -->
-    <TaskDetailDialog v-model="showDetail" :todo-id="detailId" />
   </div>
 </template>
 
@@ -301,7 +298,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
-import TaskDetailDialog from '../components/TaskDetailDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -564,12 +560,9 @@ async function deleteTodo(id: string) {
   }
 }
 
-// ============ 任务详情对话框（共享组件） ============
-const showDetail = ref(false)
-const detailId = ref<string | null>(null)
+// ============ 任务详情（右侧第四列面板，全局共享） ============
 function openDetail(todo: any) {
-  detailId.value = todo.id
-  showDetail.value = true
+  todoStore.openDetail(todo.id)
 }
 
 // ============ 工具函数 ============

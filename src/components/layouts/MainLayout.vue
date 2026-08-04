@@ -176,13 +176,18 @@
       </div>
     </aside>
 
-    <!-- ============ 右侧主内容 ============ -->
-    <main class="flex-1 flex flex-col overflow-hidden">
-      <router-view v-slot="{ Component }">
-        <transition name="page" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
+    <!-- ============ 右侧主内容 + 第四列详情面板 ============ -->
+    <main class="flex-1 flex overflow-hidden">
+      <!-- 主内容区（各视图） -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </div>
+      <!-- 第四列：详情面板（选中任务时显示） -->
+      <TaskDetailPanel />
     </main>
   </div>
 </template>
@@ -193,6 +198,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore } from '../../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../icons/AppIcon.vue'
+import TaskDetailPanel from '../TaskDetailPanel.vue'
 
 const route = useRoute()
 const router = useRouter()

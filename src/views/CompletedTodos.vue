@@ -103,9 +103,6 @@
         <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">还没有已完成的任务</p>
       </div>
     </div>
-
-    <!-- 任务详情对话框（点击条目进入） -->
-    <TaskDetailDialog v-model="showDetail" :todo-id="detailId" />
   </div>
 </template>
 
@@ -114,7 +111,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
-import TaskDetailDialog from '../components/TaskDetailDialog.vue'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
@@ -149,12 +145,9 @@ const completedTodos = computed(() => {
   return applyCollapse(sortWithHierarchy(todos.value.filter(todo => todo.kind !== 'NOTE' && todo.completed)))
 })
 
-// 任务详情对话框
-const showDetail = ref(false)
-const detailId = ref<string | null>(null)
+// 任务详情（右侧第四列面板，全局共享）
 function openDetail(todo: { id: string }) {
-  detailId.value = todo.id
-  showDetail.value = true
+  todoStore.openDetail(todo.id)
 }
 
 function formatDate(dateStr: string) {

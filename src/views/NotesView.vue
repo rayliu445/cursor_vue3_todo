@@ -27,7 +27,7 @@
           class="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-150 cursor-text"
           :style="{
             backgroundColor: 'var(--bg-app)',
-            border: newTitle || newContent ? '1px solid var(--text-secondary)' : '1px solid transparent',
+            border: newTitle ? '1px solid var(--text-secondary)' : '1px solid transparent',
           }"
           @click="focusTitle"
         >
@@ -41,14 +41,6 @@
             placeholder="笔记标题..."
             class="flex-1 bg-transparent text-sm outline-none"
             :style="{ color: 'var(--text-primary)' }"
-            @keyup.enter="addNote"
-          />
-          <input
-            v-model="newContent"
-            type="text"
-            placeholder="内容（可选）..."
-            class="flex-1 bg-transparent text-sm outline-none"
-            :style="{ color: 'var(--text-secondary)' }"
             @keyup.enter="addNote"
           />
           <button
@@ -120,9 +112,6 @@
         <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">还没有笔记，添加一个吧</p>
       </div>
     </div>
-
-    <!-- 详情（复用任务详情对话框，笔记模式下主要编辑内容） -->
-    <TaskDetailDialog v-model="showDetail" :todo-id="detailId" />
   </div>
 </template>
 
@@ -131,14 +120,12 @@ import { ref, computed, nextTick, onMounted } from 'vue'
 import { useTodoStore } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
-import TaskDetailDialog from '../components/TaskDetailDialog.vue'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 const { addTodo, removeTodo, fetchTodos } = todoStore
 
 const newTitle = ref('')
-const newContent = ref('')
 const titleInputRef = ref<HTMLInputElement | null>(null)
 
 // 笔记列表：kind=NOTE，新的在前
@@ -152,17 +139,20 @@ function focusTitle() {
   titleInputRef.value?.focus()
 }
 
+// 添加笔记：只输入标题（和普通任务一致），内容在右侧详情面板编辑
 async function addNote() {
   const title = newTitle.value.trim()
   if (!title) return
-  await addTodo({
+  const note = await addTodo({
     title,
-    content: newContent.value.trim() || undefined,
     kind: 'NOTE',
     priority: 0,
   })
   newTitle.value = ''
-  newContent.value = ''
+  // 自动在右侧第四列详情面板打开新笔记，便于立即编辑内容
+  if (note && note.id) {
+    todoStore.openDetail(note.id)
+  }
   nextTick(() => titleInputRef.value?.focus())
 }
 
@@ -172,12 +162,9 @@ async function removeNote(note: any) {
   }
 }
 
-// 详情
-const showDetail = ref(false)
-const detailId = ref<string | null>(null)
+// 详情（右侧第四列面板，全局共享）
 function openDetail(note: any) {
-  detailId.value = note.id
-  showDetail.value = true
+  todoStore.openDetail(note.id)
 }
 
 onMounted(() => {

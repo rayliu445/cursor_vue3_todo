@@ -369,6 +369,23 @@ export const useTodoStore = defineStore('todo', () => {
     return todos.value.filter((todo) => todo.priority === priority)
   }
 
+  // 按优先级获取待办事项
+  function getTodosByPriority(priority: Todo['priority']) {
+    return todos.value.filter((todo) => todo.priority === priority)
+  }
+
+  // ============ 详情选中状态（右侧第四列详情面板） ============
+  // 在任意视图点击任务，都在右侧面板展示详情（替代弹窗）
+  const selectedTodoId = ref<string | null>(null)
+
+  function openDetail(id: string) {
+    selectedTodoId.value = id
+  }
+
+  function closeDetail() {
+    selectedTodoId.value = null
+  }
+
   return {
     todos,
     loading,
@@ -383,5 +400,8 @@ export const useTodoStore = defineStore('todo', () => {
     getTodosByPriority,
     completedTodos,
     pendingTodos,
+    selectedTodoId,
+    openDetail,
+    closeDetail,
   }
 })
