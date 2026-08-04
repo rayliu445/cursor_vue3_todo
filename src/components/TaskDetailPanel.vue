@@ -1,6 +1,5 @@
 <template>
   <div
-    v-if="target"
     class="w-[400px] flex-shrink-0 flex flex-col border-l overflow-hidden"
     :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
   >
@@ -27,8 +26,8 @@
       </button>
     </div>
 
-    <!-- ===== 内容滚动区 ===== -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+    <!-- ===== 内容滚动区（有选中任务时展示详情） ===== -->
+    <div v-if="target" class="flex-1 overflow-y-auto p-4 space-y-3">
       <!-- 标题 -->
       <div>
         <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标题</label>
@@ -178,8 +177,19 @@
       </div>
     </div>
 
+    <!-- ===== 空状态（未选中任务时占位显示） ===== -->
+    <div v-else class="flex-1 flex items-center justify-center">
+      <div class="flex flex-col items-center gap-2 select-none">
+        <span :style="{ color: 'var(--text-tertiary)' }">
+          <AppIcon name="edit" :size="40" />
+        </span>
+        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">选择一个任务查看详情</p>
+      </div>
+    </div>
+
     <!-- ===== 底部操作 ===== -->
     <div
+      v-if="target"
       class="flex justify-between gap-2 px-4 py-3 border-t flex-shrink-0"
       :style="{ borderColor: 'var(--border-color)' }"
     >
@@ -209,6 +219,7 @@
 import { ref, computed, watch } from 'vue'
 import { useTodoStore } from '../stores/todo'
 import { storeToRefs } from 'pinia'
+import AppIcon from './icons/AppIcon.vue'
 
 const todoStore = useTodoStore()
 const { todos, selectedTodoId } = storeToRefs(todoStore)
