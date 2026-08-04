@@ -251,7 +251,7 @@ const priorityOptions = [
   { value: 1, label: '低' },
   { value: 3, label: '中' },
   { value: 5, label: '高' },
-]
+] as const
 
 function getPriorityBtnStyle(value: number, isSelected: boolean) {
   return {

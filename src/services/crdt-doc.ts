@@ -27,11 +27,13 @@ export interface CRDTTodo {
   content?: string
   tags?: string[]
   list?: string
+  parentId?: string // 父任务 id（子任务指向父任务，同步时必须保留）
   isAllDay?: boolean
   completedTime?: string
   updatedAt?: string
   deleted?: boolean // 软删除标记（tombstone，用于同步删除传播）
   kind?: 'TASK' | 'NOTE' // 笔记类型，默认 TASK
+  sourceId?: string // 外部来源 id（用于导入去重）
 }
 
 export interface CRDTList {

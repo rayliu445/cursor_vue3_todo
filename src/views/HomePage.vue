@@ -185,7 +185,7 @@
                 borderBottom: '1px solid var(--border-color)',
                 paddingLeft: row.todo!.parentId ? '3.5rem' : '1.5rem',
               }"
-              @contextmenu.prevent="onTodoContextMenu($event, row.todo)"
+              @contextmenu.prevent="onTodoContextMenu($event, row.todo!)"
             >
               <!-- 子任务标记 -->
               <span
@@ -198,7 +198,7 @@
               </span>
               <!-- 折叠按钮（父任务有关联子任务时显示） -->
               <button
-                v-if="hasChildren(row.todo)"
+                v-if="hasChildren(row.todo!)"
                 class="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded cursor-pointer"
                 :style="{ color: 'var(--text-tertiary)' }"
                 :title="expandedParents.has(row.todo!.id) ? '收起子任务' : '展开子任务'"
@@ -224,7 +224,7 @@
                   high: row.todo!.priority === 5,
                   medium: row.todo!.priority === 3,
                   low: row.todo!.priority === 1,
-                  none: !row.todo!.priority || row.todo!.priority === 0,
+                  none: !row.todo!.priority,
                 }"
               />
 
@@ -236,7 +236,7 @@
                   color: row.todo!.completed ? 'var(--text-tertiary)' : 'var(--text-primary)',
                   textDecorationColor: 'var(--text-tertiary)',
                 }"
-                @click="openDetail(row.todo)"
+                @click="openDetail(row.todo!)"
               >
                 {{ row.todo!.title }}
               </div>
@@ -256,7 +256,7 @@
                   class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
                   :style="{ color: 'var(--text-tertiary)' }"
                   title="编辑"
-                  @click="openDetail(row.todo)"
+                  @click="openDetail(row.todo!)"
                 >
                   <AppIcon name="edit" :size="14" />
                 </button>
@@ -275,20 +275,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="empty-state">
-        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="30" width="80" height="60" rx="8" stroke="currentColor" stroke-width="2" fill="none"/>
-          <line x1="35" y1="50" x2="85" y2="50" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="35" y1="62" x2="70" y2="62" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="35" y1="74" x2="60" y2="74" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="90" cy="30" r="14" stroke="currentColor" stroke-width="2" fill="none"/>
-          <line x1="90" y1="24" x2="90" y2="36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="84" y1="30" x2="96" y2="30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">
-          {{ emptyMessage }}
-        </p>
-      </div>
+      <EmptyState v-else :text="emptyMessage" />
     </div>
   </div>
 </template>
@@ -296,9 +283,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useTodoStore, sortWithHierarchy } from '../stores/todo'
+import { useTodoStore, sortWithHierarchy, type Todo } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
+import EmptyState from '../components/EmptyState.vue'
 import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
 
 const route = useRoute()
@@ -373,16 +361,10 @@ const priorityOptions = [
   { value: 1, label: '低' },
   { value: 3, label: '中' },
   { value: 5, label: '高' },
-]
+] as const
 
 function getPriorityBtnStyle(value: number, isSelected?: boolean) {
   const selected = isSelected !== undefined ? isSelected : newTodoPriority.value === value
-  const dotColors: Record<number, string> = {
-    0: '#bfbfbf',
-    1: '#3498db',
-    3: '#e88c31',
-    5: '#e74c3c',
-  }
   return {
     backgroundColor: selected ? 'var(--color-accent-light)' : 'var(--bg-hover)',
     color: selected ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -405,7 +387,7 @@ function clearSearch() {
 const expandedParents = ref<Set<string>>(new Set())
 
 // 任务是否有关联子任务（决定是否显示折叠按钮）
-function hasChildren(todo: any): boolean {
+function hasChildren(todo: Todo): boolean {
   return todos.value.some(t => t.parentId === todo.id)
 }
 
@@ -563,7 +545,7 @@ async function deleteTodo(id: string) {
 }
 
 // 右键快捷菜单（任务行）
-function onTodoContextMenu(e: MouseEvent, todo: any) {
+function onTodoContextMenu(e: MouseEvent, todo: Todo) {
   const items: ContextMenuItem[] = [
     {
       label: todo.kind === 'NOTE' ? '转为任务' : '转为笔记',
@@ -587,7 +569,7 @@ function onTodoContextMenu(e: MouseEvent, todo: any) {
 }
 
 // ============ 任务详情（右侧第四列面板，全局共享） ============
-function openDetail(todo: any) {
+function openDetail(todo: Todo) {
   todoStore.openDetail(todo.id)
 }
 

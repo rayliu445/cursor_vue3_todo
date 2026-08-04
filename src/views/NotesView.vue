@@ -124,23 +124,22 @@
           </div>
         </div>
       </div>
-      <div
+      <EmptyState
         v-else
-        class="flex flex-col items-center justify-center py-16 gap-3"
-      >
-        <AppIcon name="notes" :size="48" color="var(--text-tertiary)" />
-        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">{{ showArchived ? '还没有归档的笔记' : '还没有笔记，添加一个吧' }}</p>
-      </div>
+        :icon="showArchived ? 'archive' : 'notes'"
+        :text="showArchived ? '还没有归档的笔记' : '还没有笔记，添加一个吧'"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
-import { useTodoStore } from '../stores/todo'
+import { useTodoStore, type Todo } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
 import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
+import EmptyState from '../components/EmptyState.vue'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
@@ -179,7 +178,7 @@ function getTabStyle(isArchived: boolean) {
 }
 
 // 归档 / 恢复（归档 = 标记完成，日期为当天）
-function toggleArchive(note: any) {
+function toggleArchive(note: Todo) {
   setArchived(note.id, !note.completed)
 }
 
@@ -212,19 +211,19 @@ async function addNote() {
   nextTick(() => titleInputRef.value?.focus())
 }
 
-async function removeNote(note: any) {
+async function removeNote(note: Todo) {
   if (confirm('确定要删除这个笔记吗？')) {
     await removeTodo(note.id)
   }
 }
 
 // 详情（右侧第四列面板，全局共享）
-function openDetail(note: any) {
+function openDetail(note: Todo) {
   todoStore.openDetail(note.id)
 }
 
 // 右键快捷菜单（笔记条目）：未归档可归档，已归档可恢复
-function onNoteContextMenu(e: MouseEvent, note: any) {
+function onNoteContextMenu(e: MouseEvent, note: Todo) {
   const items: ContextMenuItem[] = []
   if (note.completed) {
     items.push({ label: '恢复归档', icon: 'restore', handler: () => setArchived(note.id, false) })

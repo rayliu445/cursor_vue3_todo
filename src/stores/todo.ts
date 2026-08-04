@@ -337,7 +337,9 @@ export const useTodoStore = defineStore('todo', () => {
           const pid = resolveParentId(item)
           if (pid) updates.parentId = pid
         }
-        if (!current.kind && item.kind === 'NOTE') updates.kind = 'NOTE'
+        // kind 单向升级：CSV 明确标注 NOTE 时，已有任务可转为笔记；
+        // 但不降级（笔记不会被导回任务），避免导入误覆盖手动修改
+        if (item.kind === 'NOTE' && current.kind !== 'NOTE') updates.kind = 'NOTE'
         if (Object.keys(updates).length > 0) {
           da.updateTodo(id, updates)
         }
@@ -362,11 +364,6 @@ export const useTodoStore = defineStore('todo', () => {
       if (!todo.dueDate) return false
       return todo.dueDate >= start && todo.dueDate <= end
     })
-  }
-
-  // 按优先级获取待办事项
-  function getTodosByPriority(priority: Todo['priority']) {
-    return todos.value.filter((todo) => todo.priority === priority)
   }
 
   // 按优先级获取待办事项

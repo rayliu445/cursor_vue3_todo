@@ -64,7 +64,7 @@
               high: todo.priority === 5,
               medium: todo.priority === 3,
               low: todo.priority === 1,
-              none: !todo.priority || todo.priority === 0,
+              none: !todo.priority,
             }"
           />
           <span
@@ -92,27 +92,18 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="empty-state">
-        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="30" width="80" height="60" rx="8" stroke="currentColor" stroke-width="2" fill="none"/>
-          <line x1="35" y1="50" x2="85" y2="50" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="35" y1="62" x2="70" y2="62" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="35" y1="74" x2="60" y2="74" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="70" cy="30" r="14" stroke="#e88c31" stroke-width="2" fill="#fdf6ed"/>
-          <polyline points="64,30 68,34 76,26" stroke="#e88c31" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">还没有已完成的任务</p>
-      </div>
+      <EmptyState v-else text="还没有已完成的任务或笔记" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useTodoStore, sortWithHierarchy } from '../stores/todo'
+import { useTodoStore, sortWithHierarchy, type Todo } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
 import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
+import EmptyState from '../components/EmptyState.vue'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
@@ -121,7 +112,7 @@ const { fetchTodos, removeTodo, toggleTodo } = todoStore
 // 子任务折叠（默认折叠，父任务有子任务时才显示折叠按钮）
 const expandedParents = ref<Set<string>>(new Set())
 
-function hasChildren(todo: any): boolean {
+function hasChildren(todo: Todo): boolean {
   return todos.value.some(t => t.parentId === todo.id)
 }
 
@@ -153,7 +144,7 @@ function openDetail(todo: { id: string }) {
 }
 
 // 右键快捷菜单（已完成条目）：任务/笔记动态显示转化方向
-function onTodoContextMenu(e: MouseEvent, todo: any) {
+function onTodoContextMenu(e: MouseEvent, todo: Todo) {
   const items: ContextMenuItem[] = []
   if (todo.kind === 'NOTE') {
     // 已归档笔记：可恢复归档（标记未完成）、转为任务
