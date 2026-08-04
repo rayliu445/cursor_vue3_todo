@@ -411,6 +411,28 @@ export const useTodoStore = defineStore('todo', () => {
     }
   }
 
+  // ============ 归档（笔记归档 = 标记已完成，归档日期为当天） ============
+  async function setArchived(id: string, archived: boolean) {
+    try {
+      const da = getDA()
+      const todo = todos.value.find(t => t.id === id)
+      if (!todo) return
+      const updates: Record<string, any> = { completed: archived }
+      if (archived) {
+        // 归档日期 = 今天（completedTime）
+        updates.completedTime = new Date().toISOString()
+      } else {
+        // 恢复归档：取消完成
+        updates.completedTime = null
+      }
+      da.updateTodo(id, updates)
+      refreshTodos()
+      getSyncEngine().scheduleWrite()
+    } catch (err) {
+      console.error('归档操作失败:', err)
+    }
+  }
+
   return {
     todos,
     loading,
@@ -429,5 +451,6 @@ export const useTodoStore = defineStore('todo', () => {
     openDetail,
     closeDetail,
     convertKind,
+    setArchived,
   }
 })

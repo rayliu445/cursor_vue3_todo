@@ -303,6 +303,25 @@ const icons: Record<string, IconDef> = {
       'M8 16h5',
     ],
   },
+
+  // 📦 归档 - 归档箱
+  archive: {
+    viewBox: '0 0 24 24',
+    paths: [
+      'M3 8h18',
+      'M4 8l1.2 12h13.6L20 8',
+      'M9 12h6',
+    ],
+  },
+
+  // ↩️ 恢复 - 撤销箭头
+  restore: {
+    viewBox: '0 0 24 24',
+    paths: [
+      'M3 12a9 9 0 1 0 2.6-6.4',
+      'M3 4v5h5',
+    ],
+  },
 }
 
 const icon = computed(() => {

@@ -143,8 +143,8 @@ function applyCollapse<T extends { id: string; parentId?: string }>(sorted: T[])
 }
 
 const completedTodos = computed(() => {
-  // 只显示任务（笔记 kind=NOTE 不算完成项）；层级排序：父任务在前，已完成子任务紧跟其后
-  return applyCollapse(sortWithHierarchy(todos.value.filter(todo => todo.kind !== 'NOTE' && todo.completed)))
+  // 显示所有已完成：任务 + 归档笔记（归档=标记完成，算作完成项）；层级排序：父任务在前，已完成子任务紧跟其后
+  return applyCollapse(sortWithHierarchy(todos.value.filter(todo => todo.completed)))
 })
 
 // 任务详情（右侧第四列面板，全局共享）
@@ -152,18 +152,33 @@ function openDetail(todo: { id: string }) {
   todoStore.openDetail(todo.id)
 }
 
-// 右键快捷菜单（已完成任务条目）
+// 右键快捷菜单（已完成条目）：任务/笔记动态显示转化方向
 function onTodoContextMenu(e: MouseEvent, todo: any) {
-  const items: ContextMenuItem[] = [
-    {
-      label: '转为笔记',
-      icon: 'notes',
-      handler: () => todoStore.convertKind(todo.id, 'NOTE'),
-    },
-    { label: '标记未完成', icon: 'star', handler: () => toggleTodo(todo.id) },
+  const items: ContextMenuItem[] = []
+  if (todo.kind === 'NOTE') {
+    // 已归档笔记：可恢复归档（标记未完成）、转为任务
+    items.push(
+      { label: '恢复归档', icon: 'restore', handler: () => todoStore.setArchived(todo.id, false) },
+      {
+        label: '转为任务',
+        icon: 'today',
+        handler: () => todoStore.convertKind(todo.id, 'TASK'),
+      },
+    )
+  } else {
+    items.push(
+      {
+        label: '转为笔记',
+        icon: 'notes',
+        handler: () => todoStore.convertKind(todo.id, 'NOTE'),
+      },
+      { label: '标记未完成', icon: 'star', handler: () => toggleTodo(todo.id) },
+    )
+  }
+  items.push(
     { label: '编辑', icon: 'edit', handler: () => openDetail(todo) },
     { label: '删除', icon: 'delete', danger: true, handler: () => deleteTodo(todo.id) },
-  ]
+  )
   showContextMenu(e, items)
 }
 

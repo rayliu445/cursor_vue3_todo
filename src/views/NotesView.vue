@@ -7,18 +7,31 @@
     >
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-semibold" :style="{ color: 'var(--text-primary)' }">笔记</h1>
-        <span
-          v-if="notes.length > 0"
-          class="text-xs px-2 py-0.5 rounded-full"
-          :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }"
-        >
-          {{ notes.length }}
-        </span>
+        <!-- 归档切换：笔记（未归档）/ 归档 -->
+        <div class="flex items-center gap-1">
+          <button
+            class="px-2.5 py-1 text-xs rounded-md transition-all duration-150 font-medium"
+            :style="getTabStyle(false)"
+            @click="showArchived = false"
+          >
+            笔记
+            <span v-if="notes.length" class="ml-0.5 opacity-70">{{ notes.length }}</span>
+          </button>
+          <button
+            class="px-2.5 py-1 text-xs rounded-md transition-all duration-150 font-medium"
+            :style="getTabStyle(true)"
+            @click="showArchived = true"
+          >
+            归档
+            <span v-if="archivedNotes.length" class="ml-0.5 opacity-70">{{ archivedNotes.length }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- ===== 添加笔记条 ===== -->
+    <!-- ===== 添加笔记条（仅未归档 tab 显示） ===== -->
     <div
+      v-if="!showArchived"
       class="px-6 py-3 border-b flex-shrink-0"
       :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
     >
@@ -57,9 +70,9 @@
 
     <!-- ===== 笔记列表 ===== -->
     <div class="flex-1 overflow-y-auto">
-      <div v-if="notes.length > 0" class="py-2">
+      <div v-if="displayNotes.length > 0" class="py-2">
         <div
-          v-for="note in notes"
+          v-for="note in displayNotes"
           :key="note.id"
           class="group flex items-start gap-3 px-6 py-3 cursor-pointer transition-all duration-150 border-b"
           :style="{
@@ -70,10 +83,13 @@
           @contextmenu.prevent="onNoteContextMenu($event, note)"
         >
           <span class="flex-shrink-0 flex items-center mt-0.5" :style="{ color: 'var(--text-tertiary)' }">
-            <AppIcon name="notes" :size="16" />
+            <AppIcon :name="note.completed ? 'archive' : 'notes'" :size="16" />
           </span>
           <div class="flex-1 min-w-0">
-            <div class="text-sm truncate" :style="{ color: 'var(--text-primary)' }">
+            <div
+              class="text-sm truncate"
+              :style="{ color: note.completed ? 'var(--text-tertiary)' : 'var(--text-primary)' }"
+            >
               {{ note.title }}
             </div>
             <div
@@ -83,16 +99,19 @@
             >
               {{ note.content }}
             </div>
+            <div v-if="note.completedTime" class="text-xs mt-1" :style="{ color: 'var(--text-tertiary)' }">
+              归档于 {{ formatDate(note.completedTime) }}
+            </div>
           </div>
           <!-- 悬停操作 -->
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <button
               class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
               :style="{ color: 'var(--text-tertiary)' }"
-              title="编辑"
-              @click.stop="openDetail(note)"
+              :title="note.completed ? '恢复' : '归档'"
+              @click.stop="toggleArchive(note)"
             >
-              <AppIcon name="edit" :size="14" />
+              <AppIcon :name="note.completed ? 'restore' : 'archive'" :size="14" />
             </button>
             <button
               class="icon-btn w-7 h-7 flex items-center justify-center rounded-lg"
@@ -110,7 +129,7 @@
         class="flex flex-col items-center justify-center py-16 gap-3"
       >
         <AppIcon name="notes" :size="48" color="var(--text-tertiary)" />
-        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">还没有笔记，添加一个吧</p>
+        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">{{ showArchived ? '还没有归档的笔记' : '还没有笔记，添加一个吧' }}</p>
       </div>
     </div>
   </div>
@@ -125,17 +144,52 @@ import { showContextMenu, type ContextMenuItem } from '../stores/context-menu'
 
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
-const { addTodo, removeTodo, fetchTodos } = todoStore
+const { addTodo, removeTodo, fetchTodos, setArchived } = todoStore
 
 const newTitle = ref('')
 const titleInputRef = ref<HTMLInputElement | null>(null)
 
-// 笔记列表：kind=NOTE，新的在前
+// 归档切换：false=未归档笔记，true=已归档
+const showArchived = ref(false)
+
+// 未归档笔记：kind=NOTE 且未完成
 const notes = computed(() => {
   return todos.value
-    .filter(t => t.kind === 'NOTE')
+    .filter(t => t.kind === 'NOTE' && !t.completed)
     .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
 })
+
+// 已归档笔记：kind=NOTE 且已完成（归档日期按 completedTime，新的在前）
+const archivedNotes = computed(() => {
+  return todos.value
+    .filter(t => t.kind === 'NOTE' && t.completed)
+    .sort((a, b) => (b.completedTime || b.createdAt || '').localeCompare(a.completedTime || a.createdAt || ''))
+})
+
+const displayNotes = computed(() => showArchived.value ? archivedNotes.value : notes.value)
+
+function getTabStyle(isArchived: boolean) {
+  const selected = showArchived.value === isArchived
+  return {
+    backgroundColor: selected ? 'var(--color-accent-light)' : 'var(--bg-hover)',
+    color: selected ? 'var(--text-primary)' : 'var(--text-secondary)',
+    fontWeight: selected ? '600' : '400',
+    border: '1px solid ' + (selected ? 'var(--border-color)' : 'transparent'),
+  }
+}
+
+// 归档 / 恢复（归档 = 标记完成，日期为当天）
+function toggleArchive(note: any) {
+  setArchived(note.id, !note.completed)
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
 
 function focusTitle() {
   titleInputRef.value?.focus()
@@ -169,9 +223,15 @@ function openDetail(note: any) {
   todoStore.openDetail(note.id)
 }
 
-// 右键快捷菜单（笔记条目）
+// 右键快捷菜单（笔记条目）：未归档可归档，已归档可恢复
 function onNoteContextMenu(e: MouseEvent, note: any) {
-  const items: ContextMenuItem[] = [
+  const items: ContextMenuItem[] = []
+  if (note.completed) {
+    items.push({ label: '恢复归档', icon: 'restore', handler: () => setArchived(note.id, false) })
+  } else {
+    items.push({ label: '归档', icon: 'archive', handler: () => setArchived(note.id, true) })
+  }
+  items.push(
     {
       label: '转为任务',
       icon: 'today',
@@ -179,7 +239,7 @@ function onNoteContextMenu(e: MouseEvent, note: any) {
     },
     { label: '编辑', icon: 'edit', handler: () => openDetail(note) },
     { label: '删除', icon: 'delete', danger: true, handler: () => removeNote(note) },
-  ]
+  )
   showContextMenu(e, items)
 }
 
