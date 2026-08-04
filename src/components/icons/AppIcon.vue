@@ -292,6 +292,17 @@ const icons: Record<string, IconDef> = {
       'M16 15h.01',
     ],
   },
+
+  // 📝 笔记 - 记事本
+  notes: {
+    viewBox: '0 0 24 24',
+    paths: [
+      'M5 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
+      'M8 8h8',
+      'M8 12h8',
+      'M8 16h5',
+    ],
+  },
 }
 
 const icon = computed(() => {

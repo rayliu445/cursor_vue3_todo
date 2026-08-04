@@ -56,7 +56,7 @@
     <CalendarMonth
       v-if="viewMode === 'month'"
       :current-date="currentDate"
-      :todos="todos"
+      :todos="taskTodos"
       @select-date="selectDate"
       @add-todo="handleQuickAdd"
       @toggle-todo="handleToggleTodo"
@@ -64,7 +64,7 @@
     <CalendarWeek
       v-else-if="viewMode === 'week'"
       :current-date="currentDate"
-      :todos="todos"
+      :todos="taskTodos"
       @select-date="selectDate"
       @add-todo="handleQuickAdd"
       @toggle-todo="handleToggleTodo"
@@ -72,7 +72,7 @@
     <CalendarDay
       v-else
       :current-date="currentDate"
-      :todos="todos"
+      :todos="taskTodos"
       @add-todo="handleQuickAdd"
       @toggle-todo="handleToggleTodo"
     />
@@ -163,6 +163,9 @@ import AppIcon from '../components/icons/AppIcon.vue'
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 const { fetchTodos, addTodo, toggleTodo } = todoStore
+
+// 日历只展示任务，笔记（kind=NOTE）不参与
+const taskTodos = computed(() => todos.value.filter(t => t.kind !== 'NOTE'))
 
 // 当前视图日期
 const currentDate = ref(new Date())

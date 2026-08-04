@@ -24,6 +24,13 @@ const PRIORITY_MAP: Record<string, 0 | 1 | 3 | 5> = {
   '': 0,
 }
 
+// 归一化 Kind：仅 NOTE/笔记 视为笔记，其余一律任务
+function parseKind(val: any): 'TASK' | 'NOTE' {
+  const s = String(val ?? '').trim().toUpperCase()
+  if (s === 'NOTE' || s === '笔记') return 'NOTE'
+  return 'TASK'
+}
+
 export const useImportStore = defineStore('import', () => {
   const previewItems = ref<any[]>([])
   const isParsing = ref(false)
@@ -73,6 +80,7 @@ export const useImportStore = defineStore('import', () => {
       isAllDay: item.allDay ?? item.isAllDay ?? false,
       taskId: item.taskId ?? item.task_id ?? '',
       parentId: item.parentId ?? item.parent_id ?? '',
+      kind: parseKind(item.kind ?? item.Kind ?? ''),
     })).filter((item: any) => item.title)
   }
 
@@ -159,6 +167,7 @@ export const useImportStore = defineStore('import', () => {
       parentId: item.parentId || item['Parent Id'] || '',
       list: item.List || item.list || item['清单'] || item['列表'] || '',
       createdAt: normalizeDate(item['Created Time'] || item.createdAt || item['创建时间'] || ''),
+      kind: parseKind(item.Kind || item.kind || item['类型'] || ''),
     })).filter((item: any) => item.title)
   }
 

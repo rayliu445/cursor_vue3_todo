@@ -23,7 +23,14 @@
         <div class="space-y-3">
           <!-- 标题 -->
           <div>
-            <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">标题</label>
+            <div class="flex items-center gap-2 mb-1">
+              <label class="block text-xs font-medium" :style="{ color: 'var(--text-secondary)' }">标题</label>
+              <span
+                v-if="isNote"
+                class="text-xs px-1.5 py-0.5 rounded-full"
+                :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-tertiary)' }"
+              >笔记</span>
+            </div>
             <input
               v-model="editTitle"
               type="text"
@@ -50,8 +57,8 @@
               }"
             ></textarea>
           </div>
-          <!-- 完成状态 + 优先级（一行紧凑） -->
-          <div class="flex items-center gap-4">
+          <!-- 完成状态 + 优先级（一行紧凑；笔记不显示任务属性） -->
+          <div v-if="!isNote" class="flex items-center gap-4">
             <label class="flex items-center gap-2 text-sm cursor-pointer whitespace-nowrap" :style="{ color: 'var(--text-secondary)' }">
               <input
                 v-model="editCompleted"
@@ -72,8 +79,8 @@
               </button>
             </div>
           </div>
-          <!-- 截止/开始日期（两列紧凑） -->
-          <div class="grid grid-cols-2 gap-3">
+          <!-- 截止/开始日期（两列紧凑；笔记不显示） -->
+          <div v-if="!isNote" class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium mb-1" :style="{ color: 'var(--text-secondary)' }">截止日期</label>
               <input
@@ -230,6 +237,9 @@ const effectiveId = computed(() => overrideId.value ?? props.todoId)
 const target = computed(() =>
   effectiveId.value ? todos.value.find(t => t.id === effectiveId.value) ?? null : null,
 )
+
+// 是否为笔记（kind=NOTE）：隐藏任务属性（完成/优先级/日期）
+const isNote = computed(() => target.value?.kind === 'NOTE')
 
 // 编辑字段
 const editTitle = ref('')

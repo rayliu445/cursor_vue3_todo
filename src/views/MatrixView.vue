@@ -113,7 +113,7 @@ const showConfig = ref(false)
 const labels = QUADRANT_LABELS
 
 const totalActiveTodos = computed(() => {
-  return todos.value.filter(t => !t.completed).length
+  return todos.value.filter(t => !t.completed && t.kind !== 'NOTE').length
 })
 
 function handleDrop(todoId: string, quadrantId: 1 | 2 | 3 | 4) {

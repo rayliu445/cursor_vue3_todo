@@ -97,8 +97,8 @@ export const useTodoStore = defineStore('todo', () => {
     return da
   }
 
-  // 添加待办事项（支持完整字段）
-  async function addTodo(data: { title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; parentId?: string }) {
+  // 添加待办事项（支持完整字段；kind='NOTE' 时为笔记，不作为任务条目）
+  async function addTodo(data: { title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; parentId?: string; kind?: 'TASK' | 'NOTE' }) {
     loading.value = true
     error.value = null
     
@@ -115,6 +115,7 @@ export const useTodoStore = defineStore('todo', () => {
         list: data.list,
         isAllDay: data.isAllDay,
         parentId: data.parentId,
+        kind: data.kind ?? 'TASK',
         createdAt: new Date().toISOString(),
       })
       
@@ -238,7 +239,7 @@ export const useTodoStore = defineStore('todo', () => {
   // - 按 sourceId（TickTick taskId）优先匹配，其次按标题匹配
   // - 已存在则补齐缺失字段（如内容/父子关系），不存在才新增
   // - 支持子任务关联：parentId（TickTick 父 taskId）→ 本地父任务 id
-  async function bulkAddTodos(items: Array<{ title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; createdAt?: string; completedTime?: string; taskId?: string; parentId?: string }>) {
+  async function bulkAddTodos(items: Array<{ title: string; completed?: boolean; priority?: Todo['priority']; dueDate?: string; startDate?: string; content?: string; tags?: string[]; list?: string; isAllDay?: boolean; createdAt?: string; completedTime?: string; taskId?: string; parentId?: string; kind?: 'TASK' | 'NOTE' }>) {
     loading.value = true
     error.value = null
     let successCount = 0
@@ -314,6 +315,7 @@ export const useTodoStore = defineStore('todo', () => {
           createdAt: r.item.createdAt || new Date().toISOString(),
           parentId: resolveParentId(r.item),
           sourceId: (r.item.taskId || '').trim() || undefined,
+          kind: r.item.kind === 'NOTE' ? 'NOTE' : 'TASK',
         })))
       }
 
@@ -335,6 +337,7 @@ export const useTodoStore = defineStore('todo', () => {
           const pid = resolveParentId(item)
           if (pid) updates.parentId = pid
         }
+        if (!current.kind && item.kind === 'NOTE') updates.kind = 'NOTE'
         if (Object.keys(updates).length > 0) {
           da.updateTodo(id, updates)
         }

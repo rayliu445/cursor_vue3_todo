@@ -31,6 +31,7 @@ export interface CRDTTodo {
   completedTime?: string
   updatedAt?: string
   deleted?: boolean // 软删除标记（tombstone，用于同步删除传播）
+  kind?: 'TASK' | 'NOTE' // 笔记类型，默认 TASK
 }
 
 export interface CRDTList {

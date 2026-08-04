@@ -203,11 +203,11 @@ const { todos } = storeToRefs(todoStore)
 const isAddActive = ref(false)
 const isAddHovered = ref(false)
 
-// 获取今天和最近7天的任务数量
+// 获取今天和最近7天的任务数量（不含笔记 kind=NOTE）
 const todayCount = computed(() => {
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  return todos.value.filter(t => !t.completed && t.dueDate && t.dueDate.startsWith(todayStr)).length
+  return todos.value.filter(t => t.kind !== 'NOTE' && !t.completed && t.dueDate && t.dueDate.startsWith(todayStr)).length
 })
 
 const next7Count = computed(() => {
@@ -217,17 +217,22 @@ const next7Count = computed(() => {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const next7Str = `${next7.getFullYear()}-${String(next7.getMonth() + 1).padStart(2, '0')}-${String(next7.getDate()).padStart(2, '0')}`
   return todos.value.filter(t => {
-    if (!t.dueDate || t.completed) return false
+    if (t.kind === 'NOTE' || !t.dueDate || t.completed) return false
     return t.dueDate >= todayStr && t.dueDate <= next7Str
   }).length
 })
 
 const allCount = computed(() => {
-  return todos.value.filter(t => !t.completed).length
+  return todos.value.filter(t => t.kind !== 'NOTE' && !t.completed).length
 })
 
 const completedCount = computed(() => {
-  return todos.value.filter(t => t.completed).length
+  return todos.value.filter(t => t.kind !== 'NOTE' && t.completed).length
+})
+
+// 笔记数量（kind=NOTE）
+const notesCount = computed(() => {
+  return todos.value.filter(t => t.kind === 'NOTE').length
 })
 
 interface NavItem {
@@ -261,8 +266,9 @@ function handleAddTask() {
 // 是否搜索视图（/?view=search）
 const isSearchView = computed(() => route.path === '/' && route.query.view === 'search')
 
-// 中列是否显示：仅任务列表类视图（收集箱/今天/最近7天）；日历/四象限/搜索/设置时隐藏，左侧收窄为图标列
+// 中列是否显示：任务列表视图（收集箱/今天/最近7天）与笔记视图显示；日历/四象限/搜索/设置时隐藏
 const showSecondaryNav = computed(() => {
+  if (route.path === '/notes') return true
   if (route.path !== '/') return false
   const view = route.query.view as string | undefined
   return view !== 'search'
@@ -277,11 +283,12 @@ function openSearch() {
   })
 }
 
-// 中列（二级清单）：今天 / 最近7天 / 收集箱
+// 中列（二级清单）：今天 / 最近7天 / 收集箱 / 笔记
 const secondaryNavItems = computed<NavItem[]>(() => [
   { id: 'today', label: '今天', path: '/?view=today', count: todayCount.value || '' },
   { id: 'next7', label: '最近7天', path: '/?view=next7', count: next7Count.value || '' },
   { id: 'inbox', label: '收集箱', path: '/', count: allCount.value || '' },
+  { id: 'notes', label: '笔记', path: '/notes', count: notesCount.value || '' },
 ])
 
 function getIconNavStyle(item: PrimaryNavItem) {

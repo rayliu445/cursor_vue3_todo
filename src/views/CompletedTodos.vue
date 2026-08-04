@@ -145,8 +145,8 @@ function applyCollapse<T extends { id: string; parentId?: string }>(sorted: T[])
 }
 
 const completedTodos = computed(() => {
-  // 层级排序：父任务在前，已完成子任务紧跟其后（未展开时隐藏）
-  return applyCollapse(sortWithHierarchy(todos.value.filter(todo => todo.completed)))
+  // 只显示任务（笔记 kind=NOTE 不算完成项）；层级排序：父任务在前，已完成子任务紧跟其后
+  return applyCollapse(sortWithHierarchy(todos.value.filter(todo => todo.kind !== 'NOTE' && todo.completed)))
 })
 
 // 任务详情对话框

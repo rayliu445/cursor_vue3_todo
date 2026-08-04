@@ -24,6 +24,7 @@ export interface Todo {
   parentId?: string
   sourceId?: string
   deleted?: boolean // 软删除标记（tombstone，用于同步删除传播）
+  kind?: 'TASK' | 'NOTE' // 笔记类型，默认 TASK
 }
 
 export interface DataAccess {
@@ -93,7 +94,7 @@ class SqliteDataAccess implements DataAccess {
       content: input.content, tags: input.tags, list: input.list,
       isAllDay: input.isAllDay, completedTime: input.completedTime,
       createdAt: input.createdAt, parentId: input.parentId, sourceId: input.sourceId,
-      deleted: input.deleted,
+      deleted: input.deleted, kind: input.kind,
     })
     this.notify()
     return rowToTodo(row)
@@ -105,7 +106,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: i.dueDate, startDate: i.startDate, content: i.content,
       tags: i.tags, list: i.list, isAllDay: i.isAllDay,
       completedTime: i.completedTime, createdAt: i.createdAt,
-      parentId: i.parentId, sourceId: i.sourceId, deleted: i.deleted,
+      parentId: i.parentId, sourceId: i.sourceId, deleted: i.deleted, kind: i.kind,
     })))
     this.notify()
     return rows.map(rowToTodo)
@@ -121,7 +122,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: t.dueDate, startDate: t.startDate, content: t.content,
       tags: t.tags, list: t.list, isAllDay: t.isAllDay,
       completedTime: t.completedTime, createdAt: t.createdAt, updatedAt: t.updatedAt,
-      parentId: t.parentId, sourceId: t.sourceId, deleted: t.deleted,
+      parentId: t.parentId, sourceId: t.sourceId, deleted: t.deleted, kind: t.kind,
     })))
     this.notify()
   }
@@ -132,7 +133,7 @@ class SqliteDataAccess implements DataAccess {
       dueDate: updates.dueDate, startDate: updates.startDate, content: updates.content,
       tags: updates.tags, list: updates.list, isAllDay: updates.isAllDay,
       completedTime: updates.completedTime, parentId: updates.parentId,
-      sourceId: updates.sourceId, deleted: updates.deleted,
+      sourceId: updates.sourceId, deleted: updates.deleted, kind: updates.kind,
     })
     this.notify()
   }
@@ -265,6 +266,7 @@ function rowToTodo(row: any): Todo {
     parentId: row.parent_id ?? undefined,
     sourceId: row.source_id ?? undefined,
     deleted: row.deleted === 1,
+    kind: row.kind === 'NOTE' ? 'NOTE' : 'TASK',
   }
 }
 

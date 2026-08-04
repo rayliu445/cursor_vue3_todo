@@ -98,6 +98,25 @@
       <transition name="slide-down">
         <div v-if="showAddOptions || newTodoTitle.trim()" class="flex items-center gap-4 mt-3 ml-2">
           <div class="flex items-center gap-2">
+            <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">类型</span>
+            <div class="flex gap-1">
+              <button
+                class="px-2.5 py-1 text-xs rounded-md transition-all duration-150 font-medium"
+                :style="getTypeBtnStyle('TASK')"
+                @click="newTodoKind = 'TASK'"
+              >
+                任务
+              </button>
+              <button
+                class="px-2.5 py-1 text-xs rounded-md transition-all duration-150 font-medium"
+                :style="getTypeBtnStyle('NOTE')"
+                @click="newTodoKind = 'NOTE'"
+              >
+                笔记
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
             <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">优先级</span>
             <div class="flex gap-1">
               <button
@@ -278,13 +297,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore, sortWithHierarchy } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from '../components/icons/AppIcon.vue'
 import TaskDetailDialog from '../components/TaskDetailDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
 const todoStore = useTodoStore()
 const { todos } = storeToRefs(todoStore)
 const { fetchTodos, removeTodo } = todoStore
@@ -321,6 +341,7 @@ const addInputRef = ref<HTMLInputElement | null>(null)
 const newTodoTitle = ref('')
 const newTodoPriority = ref<0 | 1 | 3 | 5>(3)
 const newTodoDueDate = ref(getTodayStr())
+const newTodoKind = ref<'TASK' | 'NOTE'>('TASK')
 const showAddOptions = ref(false)
 
 function getTodayStr() {
@@ -417,8 +438,8 @@ const filteredTodos = computed(() => {
     return applyCollapse(sortWithHierarchy(todos.value.filter(t => t.title.toLowerCase().includes(query))))
   }
 
-  // 其他视图按视图过滤（不受搜索词影响）
-  let list = todos.value
+  // 其他视图按视图过滤（不受搜索词影响）；笔记（kind=NOTE）不进任务列表
+  let list = todos.value.filter(t => t.kind !== 'NOTE')
 
   // 按视图过滤（使用本地日期，避免 UTC 跨日错位）
   const todayStr = toLocalDateStr(new Date())
@@ -505,18 +526,35 @@ const displayRows = computed<DisplayRow[]>(() => {
 })
 
 // ============ 操作 ============
-// 添加任务
+// 添加任务/笔记（类型切换：任务 TASK / 笔记 NOTE）
 async function handleAddTodo() {
   if (!newTodoTitle.value.trim()) return
+  const isNote = newTodoKind.value === 'NOTE'
   await todoStore.addTodo({
     title: newTodoTitle.value,
     priority: newTodoPriority.value,
     dueDate: newTodoDueDate.value ? new Date(newTodoDueDate.value).toISOString() : undefined,
+    kind: newTodoKind.value,
   })
   newTodoTitle.value = ''
   newTodoPriority.value = 3
   newTodoDueDate.value = getTodayStr()
+  newTodoKind.value = 'TASK'
   showAddOptions.value = false
+  // 添加的是笔记：跳到笔记视图（笔记不显示在任务列表）
+  if (isNote) {
+    router.push('/notes')
+  }
+}
+
+function getTypeBtnStyle(type: 'TASK' | 'NOTE') {
+  const selected = newTodoKind.value === type
+  return {
+    backgroundColor: selected ? 'var(--color-accent-light)' : 'var(--bg-hover)',
+    color: selected ? 'var(--text-primary)' : 'var(--text-secondary)',
+    fontWeight: selected ? '600' : '400',
+    border: '1px solid ' + (selected ? 'var(--border-color)' : 'transparent'),
+  }
 }
 
 // 删除任务

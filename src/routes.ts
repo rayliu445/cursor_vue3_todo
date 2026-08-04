@@ -22,6 +22,11 @@ export const routes = [
     component: () => import('./views/CompletedTodos.vue'),
   },
   {
+    path: '/notes',
+    name: 'notes',
+    component: () => import('./views/NotesView.vue'),
+  },
+  {
     path: '/import',
     name: 'import',
     component: () => import('./views/ImportView.vue'),

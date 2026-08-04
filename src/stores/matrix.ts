@@ -67,7 +67,8 @@ export const useMatrixStore = defineStore('matrix', () => {
     }
 
     for (const todo of todos.value) {
-      if (todo.completed) continue
+      // 跳过已完成与笔记（kind=NOTE 不进四象限）
+      if (todo.completed || todo.kind === 'NOTE') continue
       const q = getQuadrant(todo)
       groups[q].push(todo)
     }
