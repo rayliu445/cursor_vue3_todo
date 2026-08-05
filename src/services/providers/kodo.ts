@@ -66,9 +66,13 @@ async function qiniuFetch(url: string, init?: RequestInit, responseType?: 'array
       readTimeout: 60000,
     })
     const ok = res.status >= 200 && res.status < 300
+    const capHeaders: Record<string, string> = res.headers || {}
     return {
       ok,
       status: res.status,
+      headers: {
+        get: (name: string) => capHeaders[name.toLowerCase()] ?? null,
+      },
       text: async () => (typeof res.data === 'string' ? res.data : JSON.stringify(res.data ?? '')),
       json: async () => (typeof res.data === 'string' ? JSON.parse(res.data) : res.data),
       arrayBuffer: async () => {
@@ -76,7 +80,11 @@ async function qiniuFetch(url: string, init?: RequestInit, responseType?: 'array
         if (d == null) return new ArrayBuffer(0)
         if (typeof d === 'string') {
           if (responseType === 'arraybuffer') {
-            return base64ToBytes(d).buffer
+            // 防御：个别环境可能返回带 data: 前缀的 base64，剥离后再解码
+            const clean = d.startsWith('data:') && d.includes(',')
+              ? d.slice(d.indexOf(',') + 1)
+              : d
+            return base64ToBytes(clean).buffer
           }
           return new TextEncoder().encode(d).buffer
         }
@@ -85,6 +93,81 @@ async function qiniuFetch(url: string, init?: RequestInit, responseType?: 'array
     } as unknown as Response
   }
   return fetch(url, init)
+}
+
+/** 分片下载大小：64KB/片（base64 膨胀后约 85KB，规避超大响应问题） */
+const RANGE_CHUNK = 64 * 1024
+
+/**
+ * 通过 CapacitorHttp 分片 Range 下载（原生平台专用）。
+ * 七牛下载域名支持 Range（accept-ranges: bytes），每片只传输 ~85KB base64，
+ * 彻底绕开一次性传输超大 base64 字符串（数百 KB 文件约 1.3 倍膨胀）的潜在问题。
+ */
+async function downloadWithRanges(url: string): Promise<Uint8Array> {
+  // 1. 请求第一片（bytes=0-0），从 content-range 取文件总大小
+  const first = await qiniuFetch(url, { method: 'GET', headers: { Range: 'bytes=0-0' } }, 'arraybuffer')
+  if (!first.ok) throw new Error(`下载失败 (HTTP ${first.status})`)
+  const contentRange = first.headers?.get?.('content-range') || ''
+  const m = contentRange.match(/\/(\d+)$/)
+  if (!m) {
+    // 服务器不支持 Range：若第一片已包含完整内容则直接返回
+    const buf = new Uint8Array(await first.arrayBuffer())
+    if (buf.length > 0) return buf
+    throw new Error('服务器不支持分段下载')
+  }
+  const total = parseInt(m[1], 10)
+  const parts: Uint8Array[] = []
+  let received = 0
+  for (let start = 0; start < total; start += RANGE_CHUNK) {
+    const end = Math.min(start + RANGE_CHUNK - 1, total - 1)
+    const res = await qiniuFetch(
+      url,
+      { method: 'GET', headers: { Range: `bytes=${start}-${end}` } },
+      'arraybuffer',
+    )
+    if (!res.ok) throw new Error(`下载分片 ${start}-${end} 失败 (HTTP ${res.status})`)
+    const part = new Uint8Array(await res.arrayBuffer())
+    parts.push(part)
+    received += part.length
+  }
+  const result = new Uint8Array(received)
+  let offset = 0
+  for (const p of parts) {
+    result.set(p, offset)
+    offset += p.length
+  }
+  console.log('[Kodo] 分片下载成功:', received, 'bytes (', parts.length, '片)')
+  return result
+}
+
+/**
+ * 下载同步文件内容（大文件）。按平台分层，保证可靠性：
+ *
+ * - 原生（iOS/Android）：CapacitorHttp 分片 Range 下载（每片 64KB，规避超大
+ *   base64 响应）；分片失败回退一次性 CapacitorHttp。
+ * - Electron / 浏览器：fetch 直连（Electron 无 CORS；浏览器已由 read() 改写为
+ *   同源代理 /qiniu-dl 路径）。
+ */
+async function downloadFile(url: string): Promise<Uint8Array> {
+  if (IS_CAPACITOR_NATIVE) {
+    try {
+      return await downloadWithRanges(url)
+    } catch (err) {
+      console.warn('[Kodo] Range 分片下载失败，回退一次性下载:', err)
+    }
+    const res = await qiniuFetch(url, { method: 'GET' }, 'arraybuffer')
+    if (!res.ok) throw new Error(`下载失败 (HTTP ${res.status})`)
+    const buf = new Uint8Array(await res.arrayBuffer())
+    if (buf.length === 0) throw new Error('下载内容为空')
+    console.log('[Kodo] 下载成功（CapacitorHttp 一次性）:', buf.length, 'bytes')
+    return buf
+  }
+  const res = await fetch(url, { method: 'GET' })
+  if (!res.ok) throw new Error(`下载失败 (HTTP ${res.status})`)
+  const buf = new Uint8Array(await res.arrayBuffer())
+  if (buf.length === 0) throw new Error('下载内容为空')
+  console.log('[Kodo] 下载成功（fetch 直连）:', buf.length, 'bytes')
+  return buf
 }
 
 // ============ 工具函数 ============
@@ -284,28 +367,45 @@ export class KodoProvider implements CloudProvider {
 
   async read(path: string): Promise<Uint8Array | null> {
     try {
+      // 1. 获取文件元信息（含临时下载 url）。
+      //    注意：rs.qiniu.com/get/ 返回的是文件元信息 JSON（含临时下载 url），
+      //    真正的文件内容需要再请求 meta.url 获取，不能直接把 JSON 当文件内容。
       const getPath = `/get/${this.entryURI}`
       const token = await buildAccessToken(getPath, this.config.accessKeyId, this.config.accessKeySecret)
       const res = await qiniuFetch(`${RS_API_BASE}${getPath}`, {
         method: 'GET',
         headers: { Authorization: token },
       })
-      if (res.status === 612) return null
-      if (!res.ok) return null
-      // 注意：rs.qiniu.com/get/ 返回的是文件元信息 JSON（含临时下载 url），
-      // 真正的文件内容需要再请求 meta.url 获取，不能直接把 JSON 当文件内容。
+      // 612 = 文件不存在（云端还没有同步文件，首次使用）：返回 null，由调用方决定首次上传
+      if (res.status === 612) {
+        console.log('[Kodo] read: 云端文件不存在 (612)，视为首次同步')
+        return null
+      }
+      if (!res.ok) {
+        const body = await res.text().catch(() => '')
+        throw new Error(`读取云端元信息失败 (HTTP ${res.status}${body ? `: ${body}` : ''})`)
+      }
       const meta = await res.json().catch(() => null)
-      if (!meta || typeof meta.url !== 'string') return null
-      // 浏览器环境把绝对下载链接改写为同源代理路径，规避 iovip.qbox.me 无 CORS 头
+      if (!meta || typeof meta.url !== 'string') {
+        throw new Error('云端元信息缺少下载地址 (meta.url)')
+      }
+
+      // 2. 下载文件内容：
+      //    - 原生/Electron/浏览器：fetch 直连（iovip.qbox.me 有 access-control-allow-origin: *），
+      //      失败自动回退 CapacitorHttp；
+      //    - 浏览器部署环境：走同源代理 /qiniu-dl。
+      //    统一强制 https（iOS ATS 默认拦截 http 明文请求）。
       const dlUrl = DL_HOST_PREFIX
         ? meta.url.replace(/^https?:\/\/[^/]+/, DL_HOST_PREFIX)
-        : meta.url
-      const dlRes = await qiniuFetch(dlUrl, undefined, 'arraybuffer')
-      if (!dlRes.ok) return null
-      return new Uint8Array(await dlRes.arrayBuffer())
+        : meta.url.replace(/^http:/, 'https:')
+      const bytes = await downloadFile(dlUrl)
+      console.log('[Kodo] read: 成功读取云端文件', bytes.length, 'bytes')
+      return bytes
     } catch (err) {
+      // 重要：失败必须抛出（而非静默返回 null），
+      // 否则 syncNow 会误以为“云端无数据”并用本地数据覆盖云端，导致数据丢失。
       console.error('[Kodo] Read error:', err)
-      return null
+      throw err
     }
   }
 

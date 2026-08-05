@@ -137,11 +137,32 @@ export class SyncEngine {
 
       // 2. 云端数据（CRDT 文档，含 deleted 标记）
       let cloudTodos: Todo[] = []
-      const cloudData = await this.provider.read(this.CLOUD_FILE)
-      if (cloudData) {
-        const cloudDoc = loadDoc(cloudData)
-        const snap = getDocSnapshot(cloudDoc)
-        cloudTodos = Object.values(snap.todos) as Todo[]
+      try {
+        const cloudData = await this.provider.read(this.CLOUD_FILE)
+        if (cloudData) {
+          const cloudDoc = loadDoc(cloudData)
+          const snap = getDocSnapshot(cloudDoc)
+          cloudTodos = Object.values(snap.todos) as Todo[]
+          console.log('[SyncEngine] 云端读取成功，任务数:', cloudTodos.length)
+        } else {
+          console.log('[SyncEngine] 云端无文件（首次），将上传本地数据')
+        }
+      } catch (err) {
+        // 关键保护：云端读取失败时绝不能继续用本地数据覆盖云端（会导致云端数据丢失）。
+        // 直接报错返回，等待下次重试。
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[SyncEngine] 云端读取失败，已中止本次同步（防止覆盖云端）:', err)
+        this.state.status = 'error'
+        this.state.lastError = `云端读取失败：${msg}`
+        this.notifyState()
+        return {
+          success: false,
+          merged: false,
+          changesIncoming: 0,
+          changesOutgoing: 0,
+          duration: Date.now() - startTime,
+          error: this.state.lastError!,
+        }
       }
 
       // 3. LWW 合并：updated_at 更晚者胜，各自独有的都保留（含 tombstone）
@@ -265,6 +286,7 @@ export class SyncEngine {
         const cloudDoc = loadDoc(cloudData)
         const snap = getDocSnapshot(cloudDoc)
         cloudTodos = Object.values(snap.todos) as Todo[]
+        console.log('[SyncEngine] 首次同步：云端读取成功，任务数:', cloudTodos.length)
       }
 
       // 与云端做 LWW 合并后写回本地（含 tombstone，删除可传播）
@@ -273,6 +295,7 @@ export class SyncEngine {
       await dataAccess.save()
       console.log('[SyncEngine] Initial sync completed, todos:', mergedAll.filter(t => !t.deleted).length)
     } catch (err) {
+      // 初始同步失败不影响本地使用；但不覆盖本地已有数据
       console.warn('[SyncEngine] Initial sync failed (first time?):', err)
     }
   }
