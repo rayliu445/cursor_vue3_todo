@@ -9,15 +9,16 @@
  */
 
 import type { CloudProvider } from './types'
+import { Capacitor, CapacitorHttp } from '@capacitor/core'
 
 // ============ 常量 ============
 
 const DEFAULT_REGION = 'cn-east-1'
 
-// ============ 环境判断：Electron 直连，浏览器走同源代理解决 CORS ============
-// 七牛 rs/up/下载 API 均不返回 CORS 头，浏览器直连会被拦截。
-// - Electron 渲染进程已通过 webSecurity:false 直连七牛
-// - 浏览器走 Vite dev proxy / 部署平台代理（vercel.json / netlify.toml）
+// ============ 环境判断 ============
+// - Electron：通过 webSecurity:false 直连七牛
+// - Capacitor 原生（iOS/Android）：用 CapacitorHttp 走原生网络栈（绕过 WKWebView 的 CORS）直连
+// - 浏览器（Web dev / 部署平台）：走同源代理解决 CORS（Vite dev proxy / vercel.json / netlify.toml）
 function isElectronEnv(): boolean {
   if (typeof window === 'undefined') return false
   if ((window as any).electronAPI) return true
@@ -26,12 +27,68 @@ function isElectronEnv(): boolean {
 }
 
 const IS_ELECTRON = isElectronEnv()
+const IS_CAPACITOR_NATIVE = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()
+const DIRECT = IS_ELECTRON || IS_CAPACITOR_NATIVE
+
 /** 七牛 RS 管理 API 基址 */
-const RS_API_BASE = IS_ELECTRON ? 'https://rs.qiniu.com' : '/qiniu-rs'
+const RS_API_BASE = DIRECT ? 'https://rs.qiniu.com' : '/qiniu-rs'
 /** 七牛上传 API 基址 */
-const UP_API_BASE = IS_ELECTRON ? 'https://up.qiniup.com' : '/qiniu-up'
+const UP_API_BASE = DIRECT ? 'https://up.qiniup.com' : '/qiniu-up'
 /** 下载链接 host 前缀：浏览器把绝对 url 改写为同源代理 /qiniu-dl */
-const DL_HOST_PREFIX = IS_ELECTRON ? '' : '/qiniu-dl'
+const DL_HOST_PREFIX = DIRECT ? '' : '/qiniu-dl'
+
+/**
+ * 跨平台请求封装：
+ * - Capacitor 原生（iOS/Android）：走 CapacitorHttp（原生网络栈，绕过 CORS），
+ *   否则打包后 /qiniu-rs 代理不存在，请求打到 app 本地导致同步全部失败。
+ * - 其他环境：标准 fetch（Electron 直连 / Web 走同源代理）
+ */
+async function qiniuFetch(url: string, init?: RequestInit, responseType?: 'arraybuffer' | 'json' | 'text'): Promise<Response> {
+  if (IS_CAPACITOR_NATIVE) {
+    const headers: Record<string, string> = {}
+    const h = init?.headers
+    if (h) {
+      if (typeof Headers !== 'undefined' && h instanceof Headers) {
+        h.forEach((v, k) => { headers[k] = v })
+      } else if (Array.isArray(h)) {
+        h.forEach(([k, v]) => { headers[k] = String(v) })
+      } else {
+        Object.assign(headers, h as Record<string, string>)
+      }
+    }
+    const res = await CapacitorHttp.request({
+      url,
+      method: (init?.method as any) || 'GET',
+      headers,
+      data: init?.body as any,
+      responseType,
+      connectTimeout: 20000,
+      readTimeout: 60000,
+    })
+    const ok = res.status >= 200 && res.status < 300
+    return {
+      ok,
+      status: res.status,
+      text: async () => (typeof res.data === 'string' ? res.data : JSON.stringify(res.data ?? '')),
+      json: async () => (typeof res.data === 'string' ? JSON.parse(res.data) : res.data),
+      arrayBuffer: async () => {
+        const d = res.data
+        if (d == null) return new ArrayBuffer(0)
+        if (typeof d === 'string') {
+          if (responseType === 'arraybuffer') {
+            const bin = atob(d)
+            const bytes = new Uint8Array(bin.length)
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+            return bytes.buffer
+          }
+          return new TextEncoder().encode(d).buffer
+        }
+        return new ArrayBuffer(0)
+      },
+    } as unknown as Response
+  }
+  return fetch(url, init)
+}
 
 // ============ 工具函数 ============
 
@@ -154,7 +211,7 @@ export class KodoProvider implements CloudProvider {
     const token = await buildAccessToken(path, this.config.accessKeyId, this.config.accessKeySecret)
     let res: Response
     try {
-      res = await fetch(`${RS_API_BASE}${path}`, {
+      res = await qiniuFetch(`${RS_API_BASE}${path}`, {
         headers: { Authorization: token },
       })
     } catch (err: any) {
@@ -202,7 +259,7 @@ export class KodoProvider implements CloudProvider {
     try {
       const getPath = `/get/${this.entryURI}`
       const token = await buildAccessToken(getPath, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`${RS_API_BASE}${getPath}`, {
+      const res = await qiniuFetch(`${RS_API_BASE}${getPath}`, {
         method: 'GET',
         headers: { Authorization: token },
       })
@@ -216,7 +273,7 @@ export class KodoProvider implements CloudProvider {
       const dlUrl = DL_HOST_PREFIX
         ? meta.url.replace(/^https?:\/\/[^/]+/, DL_HOST_PREFIX)
         : meta.url
-      const dlRes = await fetch(dlUrl)
+      const dlRes = await qiniuFetch(dlUrl, undefined, 'arraybuffer')
       if (!dlRes.ok) return null
       return new Uint8Array(await dlRes.arrayBuffer())
     } catch (err) {
@@ -231,7 +288,7 @@ export class KodoProvider implements CloudProvider {
       const base64Data = bytesToBase64(data)
       const encodedKey = urlsafeBase64(this.objectKey)
 
-      const res = await fetch(`${UP_API_BASE}/putb64/${data.length}/key/${encodedKey}`, {
+      const res = await qiniuFetch(`${UP_API_BASE}/putb64/${data.length}/key/${encodedKey}`, {
         method: 'POST',
         headers: {
           Authorization: `UpToken ${uploadToken}`,
@@ -253,7 +310,7 @@ export class KodoProvider implements CloudProvider {
     try {
       const delPath = `/delete/${this.entryURI}`
       const token = await buildAccessToken(delPath, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`${RS_API_BASE}${delPath}`, {
+      const res = await qiniuFetch(`${RS_API_BASE}${delPath}`, {
         method: 'POST',
         headers: { Authorization: token },
       })
@@ -268,7 +325,7 @@ export class KodoProvider implements CloudProvider {
     try {
       const statPath = `/stat/${this.entryURI}`
       const token = await buildAccessToken(statPath, this.config.accessKeyId, this.config.accessKeySecret)
-      const res = await fetch(`${RS_API_BASE}${statPath}`, {
+      const res = await qiniuFetch(`${RS_API_BASE}${statPath}`, {
         method: 'GET',
         headers: { Authorization: token },
       })
@@ -283,7 +340,7 @@ export class KodoProvider implements CloudProvider {
       try {
         const statPath = `/stat/${this.entryURI}`
         const token = await buildAccessToken(statPath, this.config.accessKeyId, this.config.accessKeySecret)
-        const res = await fetch(`${RS_API_BASE}${statPath}`, {
+        const res = await qiniuFetch(`${RS_API_BASE}${statPath}`, {
           method: 'GET',
           headers: { Authorization: token },
         })
