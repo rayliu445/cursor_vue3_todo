@@ -76,10 +76,7 @@ async function qiniuFetch(url: string, init?: RequestInit, responseType?: 'array
         if (d == null) return new ArrayBuffer(0)
         if (typeof d === 'string') {
           if (responseType === 'arraybuffer') {
-            const bin = atob(d)
-            const bytes = new Uint8Array(bin.length)
-            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-            return bytes.buffer
+            return base64ToBytes(d).buffer
           }
           return new TextEncoder().encode(d).buffer
         }
@@ -100,6 +97,36 @@ function bytesToBase64(data: Uint8Array): string {
     binary += String.fromCharCode(...data.subarray(i, i + CHUNK))
   }
   return btoa(binary)
+}
+
+/**
+ * Base64 → Uint8Array（分块解码，避免 atob 对超大字符串栈溢出；
+ * 与 bytesToBase64 对称。iOS 下载大同步文件（数百 KB+）时必须分块）
+ */
+function base64ToBytes(b64: string): Uint8Array {
+  const cleaned = b64.replace(/[^A-Za-z0-9+/=]/g, '')
+  const CHUNK = 0x8000 // 32KB 字符，4 的倍数，保证每块是完整 base64 组
+  const parts: Uint8Array[] = []
+  let total = 0
+  for (let i = 0; i < cleaned.length; i += CHUNK) {
+    let chunk = cleaned.slice(i, i + CHUNK)
+    // 对齐到 4 的倍数（正常 base64 已是 4 的倍数，防御异常输入）
+    const rem = chunk.length % 4
+    if (rem) chunk = chunk.slice(0, chunk.length - rem)
+    if (!chunk) continue
+    const bin = atob(chunk)
+    const bytes = new Uint8Array(bin.length)
+    for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j)
+    parts.push(bytes)
+    total += bytes.length
+  }
+  const result = new Uint8Array(total)
+  let offset = 0
+  for (const p of parts) {
+    result.set(p, offset)
+    offset += p.length
+  }
+  return result
 }
 
 /** URL 安全的 Base64 编码（Qiniu 规范，保留 = 填充） */
