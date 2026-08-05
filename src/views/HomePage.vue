@@ -96,7 +96,7 @@
       </div>
       <!-- 展开选项 -->
       <transition name="slide-down">
-        <div v-if="showAddOptions || newTodoTitle.trim()" class="flex items-center gap-4 mt-3 ml-2">
+        <div v-if="showAddOptions || newTodoTitle.trim()" class="flex flex-wrap items-center gap-4 mt-3 ml-2">
           <div class="flex items-center gap-2">
             <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">类型</span>
             <div class="flex gap-1">

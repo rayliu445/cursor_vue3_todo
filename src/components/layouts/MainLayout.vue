@@ -82,9 +82,9 @@
           class="w-14 flex-shrink-0 flex flex-col items-center gap-1 py-2 border-r overflow-y-auto"
           :style="{ borderColor: 'var(--border-color)' }"
         >
-          <!-- 添加任务（第一列第一个）：与其他导航按钮一致的选中态逻辑——
-               点击后保持高亮（背景+橙色图标），点击其他按钮时高亮切换走 -->
+          <!-- 添加任务（仅宽屏显示；窄屏由“收集箱”图标入口替代，避免重复） -->
           <button
+            v-if="windowWidth >= 1000"
             class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
             :style="{
               backgroundColor: isAddActive ? 'var(--color-accent-light)'
@@ -117,6 +117,20 @@
           >
             <AppIcon name="search" :size="20" :color="isSearchView ? 'var(--color-accent)' : 'var(--text-secondary)'" />
           </button>
+
+          <!-- 中列入口（仅窄屏显示在图标栏：今天/收集箱/笔记，移动端可切换视图） -->
+          <template v-if="windowWidth < 1000">
+            <button
+              v-for="item in narrowSecondaryNavItems"
+              :key="'s-' + item.id"
+              class="w-10 h-10 flex items-center justify-center rounded-lg cursor-pointer transition-all duration-150"
+              :style="{ backgroundColor: isActive(item) ? 'var(--color-accent-light)' : 'transparent' }"
+              :title="item.label"
+              @click="navigateTo(item)"
+            >
+              <AppIcon :name="item.id" :size="20" :color="isActive(item) ? 'var(--color-accent)' : 'var(--text-secondary)'" />
+            </button>
+          </template>
         </nav>
 
         <!-- 中列（二级）：今天 / 最近7天 / 收集箱（仅任务列表视图显示，日历/四象限/搜索时隐藏） -->
@@ -302,8 +316,10 @@ onUnmounted(() => window.removeEventListener('resize', updateWindowWidth))
 // 详情面板最终显示：列表视图 + 窗口宽度≥1000px（三列布局至少需≈1000px）
 const detailPanelVisible = computed(() => showDetailPanel.value && windowWidth.value >= 1000)
 
-// 中列是否显示：任务列表视图（收集箱/今天/最近7天）与笔记视图显示；日历/四象限/搜索/设置时隐藏
+// 中列是否显示：窄屏(<1000px)强制收起中列（图标栏提供入口）；
+// 宽屏按原逻辑：任务列表视图（收集箱/今天/最近7天）与笔记视图显示；日历/四象限/搜索/设置时隐藏
 const showSecondaryNav = computed(() => {
+  if (windowWidth.value < 1000) return false
   if (route.path === '/notes') return true
   if (route.path !== '/') return false
   const view = route.query.view as string | undefined
@@ -326,6 +342,9 @@ const secondaryNavItems = computed<NavItem[]>(() => [
   { id: 'inbox', label: '收集箱', path: '/', count: allCount.value || '' },
   { id: 'notes', label: '笔记', path: '/notes', count: notesCount.value || '' },
 ])
+
+// 窄屏图标栏的中列入口（精简：今天 / 收集箱 / 笔记，去掉最近7天）
+const narrowSecondaryNavItems = computed(() => secondaryNavItems.value.filter(i => i.id !== 'next7'))
 
 function getIconNavStyle(item: PrimaryNavItem) {
   const active = isActive(item)
