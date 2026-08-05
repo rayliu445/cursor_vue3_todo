@@ -220,46 +220,83 @@
               class="px-3 py-1.5 text-xs rounded-lg transition-all duration-150"
               :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
               @click="handleCheckUpdate">检查更新</button>
-          </div>
-
-          <div v-if="!isElectron" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
-            桌面版支持自动更新，Web 版请前往 GitHub Releases 下载最新安装包。
-          </div>
-
-          <div v-else-if="updateState === 'checking'" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
-            正在检查更新...
-          </div>
-
-          <div v-else-if="updateState === 'none'" class="text-xs" :style="{ color: '#22c55e' }">
-            ✓ 已是最新版本（v{{ appVersion }}）
-          </div>
-
-          <div v-else-if="updateState === 'available'" class="space-y-3">
-            <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">
-              发现新版本 <span class="font-medium" :style="{ color: 'var(--text-primary)' }">v{{ updateInfo?.latestVersion }}</span>
-              （当前 v{{ appVersion }}）
-            </div>
-            <button class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150"
-              :style="{ backgroundColor: 'var(--color-accent-light)', color: 'var(--text-primary)' }"
-              @click="handleInstallUpdate">下载并安装</button>
-          </div>
-
-          <div v-else-if="updateState === 'updating'" class="space-y-2">
-            <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">正在下载 v{{ updateInfo?.latestVersion }} ... {{ updateProgress }}%</div>
-            <div class="w-full h-2 rounded-full" :style="{ backgroundColor: 'var(--bg-hover)' }">
-              <div class="h-2 rounded-full transition-all duration-150" :style="{ width: updateProgress + '%', backgroundColor: 'var(--color-accent)' }"></div>
-            </div>
-          </div>
-
-          <div v-else-if="updateState === 'done'" class="text-xs" :style="{ color: '#22c55e' }">
-            ✓ 新版本已安装完成，应用即将自动重启（任务数据与同步配置会保留）。
-          </div>
-
-          <div v-else-if="updateState === 'error'" class="space-y-2">
-            <div class="text-xs" :style="{ color: '#ef4444' }">更新失败：{{ updateError }}</div>
-            <button class="px-3 py-1.5 text-xs rounded-lg"
+            <button v-else-if="isIOS && iosUpdateState === 'idle'"
+              class="px-3 py-1.5 text-xs rounded-lg transition-all duration-150"
               :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
-              @click="handleCheckUpdate">重试</button>
+              @click="handleCheckIOSUpdate">检查更新</button>
+          </div>
+
+          <!-- iOS 专属更新检查（仅 iOS 显示） -->
+          <template v-if="isIOS">
+            <div v-if="iosUpdateState === 'idle'" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+              检查 iOS 版是否有新版本，发现后可下载新 ipa 覆盖安装。
+            </div>
+            <div v-else-if="iosUpdateState === 'checking'" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+              正在检查更新...
+            </div>
+            <div v-else-if="iosUpdateState === 'none'" class="text-xs" :style="{ color: '#22c55e' }">
+              ✓ 已是最新版本（v{{ appVersion }}）
+            </div>
+            <div v-else-if="iosUpdateState === 'available'" class="space-y-3">
+              <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+                发现新版本 <span class="font-medium" :style="{ color: 'var(--text-primary)' }">v{{ iosUpdateInfo?.latestVersion }}</span>
+                （当前 v{{ appVersion }}）
+              </div>
+              <a
+                :href="iosUpdateInfo?.downloadUrl"
+                target="_blank" rel="noopener noreferrer"
+                class="inline-flex px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150"
+                :style="{ backgroundColor: 'var(--color-accent-light)', color: 'var(--text-primary)' }"
+              >下载新版本 ipa</a>
+              <div class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
+                下载后用 Sideloadly 或 AltStore 签名安装（覆盖更新，数据保留）。
+              </div>
+            </div>
+            <div v-else-if="iosUpdateState === 'error'" class="space-y-2">
+              <div class="text-xs" :style="{ color: '#ef4444' }">检查失败：{{ iosUpdateError }}</div>
+              <button class="px-3 py-1.5 text-xs rounded-lg"
+                :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
+                @click="handleCheckIOSUpdate">重试</button>
+            </div>
+          </template>
+
+          <!-- 桌面 Electron 自动更新 -->
+          <template v-else-if="isElectron">
+            <div v-if="updateState === 'checking'" class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+              正在检查更新...
+            </div>
+            <div v-else-if="updateState === 'none'" class="text-xs" :style="{ color: '#22c55e' }">
+              ✓ 已是最新版本（v{{ appVersion }}）
+            </div>
+            <div v-else-if="updateState === 'available'" class="space-y-3">
+              <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+                发现新版本 <span class="font-medium" :style="{ color: 'var(--text-primary)' }">v{{ updateInfo?.latestVersion }}</span>
+                （当前 v{{ appVersion }}）
+              </div>
+              <button class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150"
+                :style="{ backgroundColor: 'var(--color-accent-light)', color: 'var(--text-primary)' }"
+                @click="handleInstallUpdate">下载并安装</button>
+            </div>
+            <div v-else-if="updateState === 'updating'" class="space-y-2">
+              <div class="text-xs" :style="{ color: 'var(--text-secondary)' }">正在下载 v{{ updateInfo?.latestVersion }} ... {{ updateProgress }}%</div>
+              <div class="w-full h-2 rounded-full" :style="{ backgroundColor: 'var(--bg-hover)' }">
+                <div class="h-2 rounded-full transition-all duration-150" :style="{ width: updateProgress + '%', backgroundColor: 'var(--color-accent)' }"></div>
+              </div>
+            </div>
+            <div v-else-if="updateState === 'done'" class="text-xs" :style="{ color: '#22c55e' }">
+              ✓ 新版本已安装完成，应用即将自动重启（任务数据与同步配置会保留）。
+            </div>
+            <div v-else-if="updateState === 'error'" class="space-y-2">
+              <div class="text-xs" :style="{ color: '#ef4444' }">更新失败：{{ updateError }}</div>
+              <button class="px-3 py-1.5 text-xs rounded-lg"
+                :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }"
+                @click="handleCheckUpdate">重试</button>
+            </div>
+          </template>
+
+          <!-- 其他平台（Web / Android） -->
+          <div v-else class="text-xs" :style="{ color: 'var(--text-secondary)' }">
+            桌面版支持自动更新，Web 版请前往 GitHub Releases 下载最新安装包。
           </div>
         </div>
 
@@ -284,6 +321,7 @@ import { useRouter } from 'vue-router'
 import { useSettingsStore } from '../stores/settings'
 import { themeMode as tm, setThemeMode } from '../stores/theme'
 import AppIcon from '../components/icons/AppIcon.vue'
+import { Capacitor } from '@capacitor/core'
 
 const router = useRouter()
 const store = useSettingsStore()
@@ -294,10 +332,37 @@ const appVersion = __APP_VERSION__
 
 // ============ 软件更新 ============
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI
+// 是否为 iOS（Capacitor 平台）：仅 iOS 显示 iOS 版更新检查，其他平台不展示
+const isIOS = typeof Capacitor !== 'undefined' && Capacitor.getPlatform() === 'ios'
 const updateState = ref<'idle' | 'checking' | 'available' | 'none' | 'updating' | 'done' | 'error'>('idle')
 const updateInfo = ref<{ latestVersion?: string; downloadUrl?: string } | null>(null)
 const updateProgress = ref(0)
 const updateError = ref('')
+
+// ============ iOS 版更新检查（仅 iOS 显示） ============
+const iosUpdateState = ref<'idle' | 'checking' | 'available' | 'none' | 'error'>('idle')
+const iosUpdateInfo = ref<{ latestVersion?: string; downloadUrl?: string } | null>(null)
+const iosUpdateError = ref('')
+
+async function handleCheckIOSUpdate() {
+  iosUpdateState.value = 'checking'
+  iosUpdateError.value = ''
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/rayliu445/tinydo/main/package.json', { cache: 'no-store' })
+    if (!res.ok) throw new Error('网络请求失败（HTTP ' + res.status + '）')
+    const pkg = await res.json()
+    const latest = String(pkg.version || '')
+    const hasUpdate = !!latest && latest !== appVersion
+    iosUpdateInfo.value = {
+      latestVersion: latest,
+      downloadUrl: `https://github.com/rayliu445/tinydo/releases/download/v${latest}/TinyDo-v${latest}-ios.ipa`,
+    }
+    iosUpdateState.value = hasUpdate ? 'available' : 'none'
+  } catch (err: any) {
+    iosUpdateState.value = 'error'
+    iosUpdateError.value = err?.message || '检查更新失败'
+  }
+}
 
 async function handleCheckUpdate() {
   if (!isElectron) return
