@@ -186,8 +186,8 @@
           </transition>
         </router-view>
       </div>
-      <!-- 第四列：详情面板（选中任务时显示） -->
-      <TaskDetailPanel />
+      <!-- 第四列：详情面板（仅列表视图且窗口≥1000px 时显示；窗口窄时隐藏，保证中间列宽度） -->
+      <TaskDetailPanel v-show="detailPanelVisible" />
     </main>
 
     <!-- 全局右键快捷菜单 -->
@@ -276,20 +276,34 @@ function handleAddTask() {
 // 是否搜索视图（/?view=search）
 const isSearchView = computed(() => route.path === '/' && route.query.view === 'search')
 
-// 移动端（<768px）：窄屏强制收起中列，侧边栏仅保留 56px 图标栏，避免三列布局溢出
-const isMobile = ref(false)
-function updateIsMobile() {
-  isMobile.value = window.matchMedia('(max-width: 767px)').matches
+// 详情面板是否显示：仅任务/笔记列表视图（收集箱/今天/最近7天/已完成/笔记）显示；
+// 设置/日历/四象限/搜索为独立页面，不显示详情面板
+const showDetailPanel = computed(() => {
+  if (route.path === '/settings' || route.path === '/calendar' || route.path === '/matrix') return false
+  if (route.path === '/completed' || route.path === '/notes') return true
+  if (route.path === '/') {
+    const view = route.query.view as string | undefined
+    return view !== 'search'
+  }
+  return false
+})
+
+// 窗口宽度：过窄时隐藏详情面板，保证中间列有足够宽度（不被 400px 详情面板挤压/遮住）
+const windowWidth = ref(window.innerWidth)
+function updateWindowWidth() {
+  windowWidth.value = window.innerWidth
 }
 onMounted(() => {
-  updateIsMobile()
-  window.addEventListener('resize', updateIsMobile)
+  windowWidth.value = window.innerWidth
+  window.addEventListener('resize', updateWindowWidth)
 })
-onUnmounted(() => window.removeEventListener('resize', updateIsMobile))
+onUnmounted(() => window.removeEventListener('resize', updateWindowWidth))
+
+// 详情面板最终显示：列表视图 + 窗口宽度≥1000px（三列布局至少需≈1000px）
+const detailPanelVisible = computed(() => showDetailPanel.value && windowWidth.value >= 1000)
 
 // 中列是否显示：任务列表视图（收集箱/今天/最近7天）与笔记视图显示；日历/四象限/搜索/设置时隐藏
 const showSecondaryNav = computed(() => {
-  if (isMobile.value) return false
   if (route.path === '/notes') return true
   if (route.path !== '/') return false
   const view = route.query.view as string | undefined

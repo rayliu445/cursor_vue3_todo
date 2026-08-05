@@ -120,56 +120,58 @@ macOS 15+ 对隔离下载的脚本会弹出 **「Apple 无法验证『fix-gateke
 
 ## iOS
 
-> iOS 版以 **ad-hoc 签名** 的 `.ipa` 文件形式发布（**无需开发者账号**即可安装），
+> iOS 版以 **未签名** 的 `.ipa` 文件形式发布（**无需开发者账号**即可安装），
 > 请从 [Releases 页面](https://github.com/rayliu445/tinydo/releases) 下载
 > `TinyDo-vX.X.X-ios.ipa`。
+>
+> ⚠️ **务必使用未签名包**：Sideloadly / AltStore 对带 ad-hoc 签名的 `.ipa`
+> 会报 “Invalid file”，请用侧载工具自行签名安装。
 
 ### iOS 系统要求
 
 - iOS 15.0 或更高版本（iPhone / iPad）
 - 安装过程需要一台电脑（macOS 或 Windows）
 
-### 方式一：AltStore 安装（免费，推荐）
+### 方式一：Sideloadly 安装（推荐，实测最稳定）
 
-AltStore 是最方便的 iOS 侧载方案，使用免费 Apple ID 即可。
-
-#### 电脑端准备（仅首次需要）
-
-1. 访问 [altstore.io](https://altstore.io) 下载 AltStore（macOS 或 Windows）
-2. 安装并打开 AltStore
-3. 用数据线连接 iPhone，点击菜单栏 AltStore 图标 → **Install AltStore** → 选择您的 iPhone
-4. 输入您的 Apple ID（仅用于签名，不会泄露给 TinyDo）
-
-#### iPhone 端安装 TinyDo
-
-5. 下载 `TinyDo-vX.X.X-ios.ipa`，通过 **AirDrop 或文件 App** 传到 iPhone
-6. 在 iPhone 上打开 **AltStore** → **My Apps** → **+** → 选择 `.ipa` 文件
-7. 等待安装完成（首次需要联网验证 Apple ID）
-
-#### 信任应用（必须）
-
-8. 前往 **设置 → 通用 → VPN 与设备管理**
-9. 点击您的 Apple ID → **信任**
-10. 返回主屏幕，即可打开 TinyDo
-
-#### 自动续签
-
-AltStore 会在后台自动为应用续签（免费账号 **7 天**有效期）。
-确保 iPhone 和 Mac 在同一 Wi-Fi 网络下即可。
-
-### 方式二：Sideloadly（通过电脑安装）
+Sideloadly 使用现代 Apple 认证，对 **手机号 Apple ID + 双重认证** 支持最好。
 
 1. 下载 [Sideloadly](https://sideloadly.io)（macOS / Windows）
-2. 用数据线连接 iPhone 到电脑
-3. 将 `.ipa` 文件拖入 Sideloadly
-4. 输入 Apple ID 签名并安装
-5. 安装后同样需要：**设置 → 通用 → VPN 与设备管理 → 信任**
+2. 用数据线连接 iPhone 到电脑（解锁并点「信任此电脑」）
+3. 将 `TinyDo-vX.X.X-ios.ipa` 拖入 Sideloadly
+4. 输入 **Apple ID** 和密码（双重认证账号建议用 **App 专用密码**）
+5. 勾选 **Automatically re-sign**（自动续签，7 天免手动）
+6. 点 **Start** 签名安装
+7. 首次打开前：**设置 → 通用 → VPN 与设备管理 → 信任**
 
-### 方式三：SideStore（AltStore 替代品）
+### 方式二：AltStore Source（第三方仓库，可一键安装/更新）
+
+将 TinyDo 添加为 AltStore 的第三方源，之后可在 AltStore 中查看版本并一键安装/更新：
+
+1. iPhone 打开 **AltStore** → **Sources** → 点 **+**
+2. 输入源地址：`https://rayliu445.github.io/tinydo/altstore/source.json`
+3. 添加后，**Browse** 中出现 **TinyDo**（橙色图标）
+4. 点进去安装即可（安装同样需要 AltServer 用 Apple ID 签名）
+
+> ⚠️ AltStore 的安装依赖 **AltServer** 用 Apple ID 签名。若您的 Apple ID 是
+> **手机号注册** 或开启 **双重认证**，AltServer 的老认证接口可能登录失败。
+> 遇到这种情况请改用 **方式一（Sideloadly）**。
+
+### 方式三：AltStore 手动安装（可选）
+
+1. 电脑端安装 [AltServer](https://altstore.io)，用数据线连接 iPhone，安装 AltStore 到 iPhone
+2. 将 `.ipa` 通过 AirDrop 传到 iPhone，在 AltStore → My Apps → **+** 选择安装
+3. 每 7 天需连接电脑自动续签
+
+### 方式四：SideStore（AltStore 替代品）
 
 1. 访问 [sidestore.io](https://sidestore.io) 安装 SideStore
 2. 在 SideStore 中导入 `.ipa` 文件
-3. 同样每 7 天需要续签（SideStore 支持无线自动续签）
+3. 每 7 天需续签（SideStore 支持无线自动续签）
+
+### 检查更新（iOS 版专属）
+
+设置 → 关于 → **软件更新**：自动对比 GitHub 最新版本，有新版本时提供 `.ipa` 下载链接，下载后用 Sideloadly / AltStore 覆盖安装即可（数据保留）。
 
 ### iOS 常见问题
 
@@ -183,7 +185,12 @@ AltStore 会在后台自动为应用续签（免费账号 **7 天**有效期）�
 
 #### 应用 7 天后打不开
 
-- 免费签名有效期 7 天，用 AltStore 连接电脑自动续签即可，**数据不会丢失**
+- 免费签名有效期 7 天，Sideloadly 勾选 **Automatically re-sign** 可自动续签；**数据不会丢失**
+
+#### AltServer 登录失败（手机号 Apple ID）
+
+- AltServer 老认证接口对手机号注册 / 双重认证的 Apple ID 兼容性差。
+  建议改用 **Sideloadly（方式一）**，或使用邮箱注册的 Apple ID 签名。
 
 ### 开发者账号（可选）
 

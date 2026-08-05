@@ -36,7 +36,7 @@ TinyDo 是一款对标滴答清单的个人任务管理工具，支持多平台�
 |------|--------|------|
 | 🖥️ macOS | `.dmg` | Electron 30（未签名，首次安装见下方说明） |
 | 🖥️ Windows | `.exe` (Portable) | Electron 30 |
-| 📱 iOS | `.ipa` (AltStore/Sideloadly 侧载) | Capacitor 8（ad-hoc 签名，免费安装） |
+| 📱 iOS | `.ipa` (Sideloadly/AltStore 侧载) | Capacitor 8（未签名，免费侧载） |
 | 📱 Android | `.apk` | Capacitor 8 |
 | 🌐 Web | 浏览器直接访问 | Vite 2 |
 
@@ -106,7 +106,7 @@ npm run dist          # macOS .dmg
 npm run electron:build  # 构建但不打包
 
 # 构建移动端 (需要 Xcode / Android SDK)
-npm run mobile:build:ios       # iOS 侧载 .ipa（ad-hoc 签名，无需开发者账号）
+npm run mobile:build:ios       # iOS 侧载 .ipa（未签名，无需开发者账号）
 npm run mobile:build:android
 ```
 
@@ -140,8 +140,7 @@ npm run mobile:build:android
 | `npm run dist` | `.dmg` | macOS 安装包 |
 | `npm run electron:build` | `dist-electron/` | macOS 构建目录 |
 | `npm run mobile:sync` | `ios/` `android/` | 同步前端到原生项目 |
-| `npm run mobile:build:ios` | `.ipa` | iOS 侧载安装包 (ad-hoc 签名, 需 Xcode) |
-| `npm run mobile:build:ios:adhoc` | `.ipa` | 同上（等价命令） |
+| `npm run mobile:build:ios` | `.ipa` | iOS 侧载安装包 (未签名, 需 Xcode) |
 | `npm run mobile:build:android` | `.apk` | Android 安装包 |
 | `npm run release:all` | 全部 | 一键全平台构建 |
 
