@@ -1,6 +1,10 @@
 <template>
   <div
-    class="w-[400px] flex-shrink-0 flex flex-col border-l overflow-hidden"
+    :class="[
+      isMobile ? 'fixed inset-0 z-50 w-full' : 'w-[400px] flex-shrink-0',
+      'flex flex-col overflow-hidden',
+      isMobile && !target ? 'hidden' : '',
+    ]"
     :style="{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }"
   >
     <!-- ===== 头部 ===== -->
@@ -216,10 +220,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useTodoStore } from '../stores/todo'
 import { storeToRefs } from 'pinia'
 import AppIcon from './icons/AppIcon.vue'
+
+// 移动端检测（<768px）：详情面板改为全屏覆盖层，避免窄屏三列布局溢出
+const isMobile = ref(false)
+function updateIsMobile() {
+  isMobile.value = window.matchMedia('(max-width: 767px)').matches
+}
+onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
+})
+onUnmounted(() => window.removeEventListener('resize', updateIsMobile))
 
 const todoStore = useTodoStore()
 const { todos, selectedTodoId } = storeToRefs(todoStore)

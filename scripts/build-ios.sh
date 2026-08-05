@@ -1,13 +1,14 @@
 #!/bin/bash
 # ============================================
 # TinyDo - iOS 侧载 .ipa 构建脚本
-# 无需 Apple 开发者账号，产出 ad-hoc 签名 .ipa
-# 可用 AltStore / Sideloadly / SideStore 免费安装
+# 无需 Apple 开发者账号，产出「未签名」.ipa
+# 用 Sideloadly 等工具签名安装（实测：ad-hoc 签名 ipa 会导致 Sideloadly
+# 报 "Invalid file"，必须提供未签名包让工具自行签名）
 #
 # 用法:
 #   bash scripts/build-ios.sh
 # 或:
-#   npm run mobile:build:ios:adhoc
+#   npm run mobile:build:ios
 # ============================================
 set -e
 
@@ -101,9 +102,11 @@ if [ ! -d "$APP_PATH" ]; then
   exit 1
 fi
 
-# 5. Ad-hoc 签名 + 打包 .ipa
-echo "[4/4] Ad-hoc signing & packaging .ipa..."
-codesign --force --deep --sign - "$APP_PATH"
+# 5. 打包 .ipa（不签名）
+#    实测教训：不要用 codesign ad-hoc 签名——Sideloadly 等工具对带
+#    adhoc 签名的 ipa 会报 "Guru Meditation ... Invalid file"，
+#    必须提供未签名包，由工具自行用 Apple ID 签名安装。
+echo "[4/4] Packaging unsigned .ipa..."
 
 rm -rf "$BUILD_DIR/ipa"
 mkdir -p "$BUILD_DIR/ipa/Payload"
@@ -120,12 +123,11 @@ mkdir -p "$RELEASE_DIR"
 cp "$BUILD_DIR/ipa/$IPA_NAME" "$RELEASE_DIR/"
 
 echo ""
-echo "✅ iOS .ipa 构建完成:"
+echo "✅ iOS .ipa 构建完成（未签名，供侧载工具自行签名）:"
 echo "   $RELEASE_DIR/$IPA_NAME"
 echo ""
-echo "安装方式（任选其一，均无需开发者账号）："
-echo "   1. AltStore   → 将 .ipa 传输到 iPhone，在 AltStore 中 My Apps → + 选择安装"
-echo "   2. Sideloadly → iPhone 连接电脑，拖入 .ipa，输入 Apple ID 签名安装"
-echo "   3. SideStore  → 在 SideStore 中导入 .ipa"
+echo "安装方式（均无需开发者账号）："
+echo "   1. Sideloadly → iPhone 连接电脑，拖入 .ipa，输入 Apple ID 签名安装（推荐）"
+echo "   2. SideStore  → 在 SideStore 中导入 .ipa"
 echo ""
-echo "⚠️  免费 Apple ID 签名的应用每 7 天需要续签一次（AltStore 可自动续签）"
+echo "⚠️  免费 Apple ID 签名的应用每 7 天需要续签一次（Sideloadly 可自动续签）"

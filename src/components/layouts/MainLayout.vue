@@ -196,7 +196,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore } from '../../stores/todo'
 import { storeToRefs } from 'pinia'
@@ -276,8 +276,20 @@ function handleAddTask() {
 // 是否搜索视图（/?view=search）
 const isSearchView = computed(() => route.path === '/' && route.query.view === 'search')
 
+// 移动端（<768px）：窄屏强制收起中列，侧边栏仅保留 56px 图标栏，避免三列布局溢出
+const isMobile = ref(false)
+function updateIsMobile() {
+  isMobile.value = window.matchMedia('(max-width: 767px)').matches
+}
+onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
+})
+onUnmounted(() => window.removeEventListener('resize', updateIsMobile))
+
 // 中列是否显示：任务列表视图（收集箱/今天/最近7天）与笔记视图显示；日历/四象限/搜索/设置时隐藏
 const showSecondaryNav = computed(() => {
+  if (isMobile.value) return false
   if (route.path === '/notes') return true
   if (route.path !== '/') return false
   const view = route.query.view as string | undefined
