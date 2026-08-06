@@ -15,7 +15,7 @@
       "localizedDescription": "TinyDo 是一个本地优先的待办事项与笔记应用。\n\n功能：\n• 任务层级：父子任务、折叠展开、级联完成\n• 笔记：任务一键转笔记、归档管理\n• 日历视图 / 四象限矩阵 / 全局搜索\n• 数据导入：支持滴答清单 CSV / JSON（幂等去重）\n• 可选七牛云同步（本地优先 + 云备份）\n\n数据保存在本地（IndexedDB），注重隐私，离线可用。\n\n免费 Apple ID 侧载签名每 7 天需续签一次（AltStore 可自动续签）。",
       "iconURL": "https://rayliu445.github.io/tinydo/altstore/icon.png",
       "tintColor": "#e88c31",
-      "size": 876676,
+      "size": 877093,
       "minOSVersion": "15.0",
       "permissions": []
     }
