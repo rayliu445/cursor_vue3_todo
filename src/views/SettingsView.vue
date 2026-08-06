@@ -79,6 +79,21 @@
             :style="{ backgroundColor: '#fef2f2', color: '#ef4444' }">
             {{ syncErrorMessage }}
           </div>
+          <!-- 同步诊断：让用户看到云端/本地任务数等真相，便于定位问题 -->
+          <div v-if="syncDetail" class="mt-2 text-xs px-3 py-2 rounded-lg space-y-0.5"
+            :style="{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }">
+            <div class="font-medium" :style="{ color: 'var(--text-primary)' }">同步诊断</div>
+            <template v-if="syncDetail.error">
+              <div>阶段：{{ syncDetail.stage || '未知' }}</div>
+              <div>错误：{{ syncDetail.error }}</div>
+            </template>
+            <template v-else>
+              <div v-if="syncDetail.cloudBytes !== undefined">云端文件：{{ syncDetail.cloudBytes === null ? '无（首次）' : (syncDetail.cloudBytes / 1024).toFixed(1) + ' KB' }}</div>
+              <div v-if="syncDetail.cloudTodos !== undefined">云端任务：{{ syncDetail.cloudTodos }}</div>
+              <div v-if="syncDetail.localTodos !== undefined">本地任务：{{ syncDetail.localTodos }}</div>
+              <div v-if="syncDetail.mergedTodos !== undefined">合并后：{{ syncDetail.mergedTodos }}</div>
+            </template>
+          </div>
         </div>
 
         <!-- 七牛云配置卡片 -->
@@ -445,6 +460,7 @@ const syncDotColor = computed(() => {
 const syncStatusText = computed(() => ({ idle: '同步正常', syncing: '同步中…', error: '同步出错', offline: '离线' })[store.syncState.status] || '未知')
 const lastSyncTime = computed(() => { const t = store.syncState.lastSyncTime; return t ? new Date(t).toLocaleString('zh-CN') : null })
 const syncErrorMessage = computed(() => store.syncState.lastError)
+const syncDetail = computed(() => store.syncState.lastSyncDetail)
 
 function handleEnableProvider(id: string) { store.toggleProvider(id) }
 function handleDisconnect() { store.disconnectProvider() }

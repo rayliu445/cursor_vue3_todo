@@ -137,13 +137,15 @@ export class SyncEngine {
 
       // 2. 云端数据（CRDT 文档，含 deleted 标记）
       let cloudTodos: Todo[] = []
+      let cloudBytes: number | null = null
       try {
         const cloudData = await this.provider.read(this.CLOUD_FILE)
         if (cloudData) {
+          cloudBytes = cloudData.length
           const cloudDoc = loadDoc(cloudData)
           const snap = getDocSnapshot(cloudDoc)
           cloudTodos = Object.values(snap.todos) as Todo[]
-          console.log('[SyncEngine] 云端读取成功，任务数:', cloudTodos.length)
+          console.log('[SyncEngine] 云端读取成功，任务数:', cloudTodos.length, '字节:', cloudBytes)
         } else {
           console.log('[SyncEngine] 云端无文件（首次），将上传本地数据')
         }
@@ -154,6 +156,12 @@ export class SyncEngine {
         console.error('[SyncEngine] 云端读取失败，已中止本次同步（防止覆盖云端）:', err)
         this.state.status = 'error'
         this.state.lastError = `云端读取失败：${msg}`
+        this.state.lastSyncDetail = {
+          time: new Date().toISOString(),
+          cloudBytes,
+          stage: 'read',
+          error: this.state.lastError,
+        }
         this.notifyState()
         return {
           success: false,
@@ -182,6 +190,13 @@ export class SyncEngine {
       this.state.status = 'idle'
       this.state.lastSyncTime = new Date().toISOString()
       this.state.lastError = null
+      this.state.lastSyncDetail = {
+        time: new Date().toISOString(),
+        cloudBytes,
+        cloudTodos: cloudTodos.length,
+        localTodos: localAll.length,
+        mergedTodos: mergedAll.length,
+      }
       this.notifyState()
 
       return {
@@ -194,6 +209,11 @@ export class SyncEngine {
     } catch (err) {
       this.state.status = 'error'
       this.state.lastError = err instanceof Error ? err.message : 'Unknown sync error'
+      this.state.lastSyncDetail = {
+        time: new Date().toISOString(),
+        stage: 'sync',
+        error: this.state.lastError,
+      }
       this.notifyState()
 
       return {
@@ -281,22 +301,43 @@ export class SyncEngine {
       const localAll = dataAccess.getAllTodos()
 
       let cloudTodos: Todo[] = []
+      let cloudBytes: number | null = null
       const cloudData = await this.provider.read(this.CLOUD_FILE)
       if (cloudData) {
+        cloudBytes = cloudData.length
         const cloudDoc = loadDoc(cloudData)
         const snap = getDocSnapshot(cloudDoc)
         cloudTodos = Object.values(snap.todos) as Todo[]
-        console.log('[SyncEngine] 首次同步：云端读取成功，任务数:', cloudTodos.length)
+        console.log('[SyncEngine] 首次同步：云端读取成功，任务数:', cloudTodos.length, '字节:', cloudBytes)
+      } else {
+        console.log('[SyncEngine] 首次同步：云端无文件，将上传本地数据')
       }
 
       // 与云端做 LWW 合并后写回本地（含 tombstone，删除可传播）
       const mergedAll = mergeTodosByUpdatedAt(localAll, cloudTodos)
       dataAccess.replaceAll(mergedAll)
       await dataAccess.save()
+      this.state.lastSyncDetail = {
+        time: new Date().toISOString(),
+        cloudBytes,
+        cloudTodos: cloudTodos.length,
+        localTodos: localAll.length,
+        mergedTodos: mergedAll.length,
+      }
       console.log('[SyncEngine] Initial sync completed, todos:', mergedAll.filter(t => !t.deleted).length)
     } catch (err) {
-      // 初始同步失败不影响本地使用；但不覆盖本地已有数据
-      console.warn('[SyncEngine] Initial sync failed (first time?):', err)
+      // 关键：初始同步失败必须让用户可见（之前吞错误导致“同步正常却没数据”的假象）。
+      // 不覆盖本地已有数据。
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[SyncEngine] 初始同步失败（不覆盖本地数据）:', err)
+      this.state.status = 'error'
+      this.state.lastError = `初始同步失败：${msg}`
+      this.state.lastSyncDetail = {
+        time: new Date().toISOString(),
+        stage: 'initial-read',
+        error: this.state.lastError,
+      }
+      this.notifyState()
     }
   }
 

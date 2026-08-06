@@ -65,6 +65,18 @@ export interface SyncState {
   lastSyncTime: string | null
   lastError: string | null
   isOnline: boolean
+  /** 最近一次同步诊断详情（可观测性：让用户/开发者看到云端与本地任务数等真相） */
+  lastSyncDetail?: {
+    time: string
+    /** 云端文件下载字节数（null = 云端无文件，读取失败时可能为 undefined） */
+    cloudBytes?: number | null
+    cloudTodos?: number
+    localTodos?: number
+    mergedTodos?: number
+    /** 失败发生的阶段（read/merge/write 等） */
+    stage?: string
+    error?: string
+  } | null
 }
 
 /**
