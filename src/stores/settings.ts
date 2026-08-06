@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getSyncEngine, type SyncEngine } from '../services/sync-engine'
-import type { SyncConfig } from '../services/providers/types'
+import type { SyncConfig, SyncState } from '../services/providers/types'
 import { DEFAULT_SYNC_CONFIG } from '../services/providers/types'
 import { KodoProvider, type KodoConfig } from '../services/providers/kodo'
 
@@ -61,8 +61,12 @@ export const useSettingsStore = defineStore('settings', () => {
     return settings.value.providers.find(p => p.enabled) ?? null
   })
 
-  const syncState = computed(() => {
-    return syncEngine.getState()
+  // 同步状态：必须订阅引擎变化保持响应式。
+  // 之前用 computed(() => syncEngine.getState())——syncEngine.state 不是 Vue 响应式对象，
+  // computed 只计算一次就缓存初始快照，导致设置页永远显示“同步正常”、看不到诊断/错误。
+  const syncState = ref<SyncState>(syncEngine.getState())
+  syncEngine.onStateChange((s) => {
+    syncState.value = s
   })
 
   const isSyncEnabled = computed(() => {
