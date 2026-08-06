@@ -1,25 +1,31 @@
 # TinyDo - 发布说明
 
-## v0.1.12（2026-08-06）—— ★ iOS 同步问题的真正根因修复
+## v0.1.13（2026-08-06）—— ★★★ iOS 同步问题的最终修复
 
-### 修复：iOS 上本地数据库从未初始化成功（Database not initialized）
+### 修复：WASM 文件从未打包进 iOS app（真正完整根因）
 
-- **根因（终于找到）**：iOS（Capacitor）的本地服务器对 `.wasm` 文件返回的
-  `Content-Type` 不是 `application/wasm`，导致 `WebAssembly.instantiateStreaming`
-  失败 → sql.js（SQLite WASM）初始化失败 → 本地数据库永远是 null →
-  **所有数据操作抛 "Database not initialized"**。
-- **连锁后果**：云端数据即使下载成功（1204 个任务）也**写不进本地数据库**，
-  所以任务永远显示不出来——这就是"同步正常却拉不到数据"的真正原因。
-- **修复**：`sqlite-db.ts` 改为手动 `fetch` WASM 为 `ArrayBuffer`，通过
-  `wasmBinary` 选项传给 `initSqlJs`（走 `WebAssembly.instantiate(ArrayBuffer)`，
-  **不校验 MIME**），跨平台可靠；fetch 失败自动回退原方式。
-- **验证**：Node 中 `wasmBinary` 方式建表/插入/查询全部成功；浏览器中通过
-  Vite 加载真实 `sqlite-db.ts`，`initialize()` 成功（ready=true）。
-- 附带：上一版（v0.1.11）的设置页同步状态响应式修复 + 同步诊断面板。
+- **根因（完整链条）**：`public/node_modules/sql.js/`（含 sql-wasm.wasm）被
+  `.gitignore` 的 `node_modules` 规则忽略，**从未提交到 git** → CI（GitHub
+  Actions）构建的 app 里**根本没有 WASM 文件** → iOS 上加载 `/node_modules/
+  sql.js/dist/sql-wasm.wasm` 返回 **404** → sql.js 初始化失败 → 本地数据库
+  永远是 null（"Database not initialized"）→ **云端 1204 个任务下载成功也
+  写不进本地 → 任务永远显示不出来**。
+- **修复（两步）**：
+  1. WASM 文件复制到 **`public/sql-wasm.wasm`**（正式入库，随构建进 app）
+  2. `sqlite-db.ts` 的 `locateFile` 改为相对路径 **`./sql-wasm.wasm`**，
+     并改用 **`wasmBinary`** 方式加载（fetch ArrayBuffer → initSqlJs，
+     不依赖 MIME 类型），跨 Web / Electron / iOS 全部可用
+- **验证**：构建产物 `dist/sql-wasm.wasm` 存在；浏览器中 wasm 可访问（200）
+  + 加载真实 `sqlite-db.ts` 初始化成功（ready=true）。
+- 此前的 MIME 判断是误导——真正问题是文件压根没进包。
 
 ---
 
 ## 历史版本
+
+### v0.1.12（2026-08-06）
+
+- sql.js 改用 wasmBinary 方式加载（fetch ArrayBuffer，规避 MIME 问题）
 
 ### v0.1.11（2026-08-06）
 

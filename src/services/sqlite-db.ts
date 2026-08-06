@@ -94,19 +94,15 @@ export class TodoDatabase {
   /** 初始化：加载 WASM + 创建 Schema */
   async initialize(existingData?: Uint8Array): Promise<void> {
     // 根据运行环境定位 sql.js WASM 文件
+    // 【关键】WASM 文件放在 public/sql-wasm.wasm（已入库），构建后位于 dist 根目录。
+    // 这里使用相对路径 './sql-wasm.wasm'，跨平台均可正确解析：
+    //   - Web dev：Vite 从 public/ 提供 /sql-wasm.wasm
+    //   - Electron（file://）：相对 dist/index.html → dist/sql-wasm.wasm
+    //   - iOS/Android（Capacitor，http://localhost）：相对 app 根 → sql-wasm.wasm
+    // 之前用 '/node_modules/sql.js/dist/' 路径，但 public/node_modules 被 .gitignore
+    // 忽略、CI 构建的 app 里根本没有 wasm 文件 → iOS 上 404 → 数据库初始化失败。
     const locateFile = (file: string) => {
-      const url = self.location.href
-      // 开发模式 (Vite dev server：http://localhost:3000)
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        // Vite 开发模式下，WASM 需要通过 public 目录或 node_modules 直接访问
-        // 但 sql.js 被 exclude 在 optimizeDeps 外，所以直接引用原始路径
-        return `/node_modules/sql.js/dist/${file}`
-      }
-      // 生产模式 (Electron asar：file:///.../app.asar/dist/index.html)
-      const asarRoot = url.substring(0, url.lastIndexOf('/', url.length - 1))
-      const distIdx = asarRoot.lastIndexOf('/dist')
-      const baseDir = distIdx >= 0 ? url.substring(0, distIdx) : asarRoot
-      return baseDir + '/node_modules/sql.js/dist/' + file
+      return './' + file
     }
 
     // 【关键修复】iOS/Android (Capacitor) 下，本地服务器对 .wasm 返回的
