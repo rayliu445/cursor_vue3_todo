@@ -36,7 +36,7 @@ TinyDo 是一款对标滴答清单的个人任务管理工具，支持多平台�
 |------|--------|------|
 | 🖥️ macOS | `.dmg` | Electron 30（未签名，首次安装见下方说明） |
 | 🖥️ Windows | `.exe` (Portable) | Electron 30 |
-| 📱 iOS | `.ipa` (Sideloadly/AltStore 侧载) | Capacitor 8（未签名，免费侧载） |
+| 📱 iOS | `.ipa` (Sideloadly 侧载) | Capacitor 8（未签名，免费侧载） |
 | 📱 Android | `.apk` | Capacitor 8 |
 | 🌐 Web | 浏览器直接访问 | Vite 2 |
 

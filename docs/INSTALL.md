@@ -124,7 +124,7 @@ macOS 15+ 对隔离下载的脚本会弹出 **「Apple 无法验证『fix-gateke
 > 请从 [Releases 页面](https://github.com/rayliu445/tinydo/releases) 下载
 > `TinyDo-vX.X.X-ios.ipa`。
 >
-> ⚠️ **务必使用未签名包**：Sideloadly / AltStore 对带 ad-hoc 签名的 `.ipa`
+> ⚠️ **务必使用未签名包**：Sideloadly 对带 ad-hoc 签名的 `.ipa`
 > 会报 “Invalid file”，请用侧载工具自行签名安装。
 
 ### iOS 系统要求
@@ -144,26 +144,7 @@ Sideloadly 使用现代 Apple 认证，对 **手机号 Apple ID + 双重认证**
 6. 点 **Start** 签名安装
 7. 首次打开前：**设置 → 通用 → VPN 与设备管理 → 信任**
 
-### 方式二：AltStore Source（第三方仓库，可一键安装/更新）
-
-将 TinyDo 添加为 AltStore 的第三方源，之后可在 AltStore 中查看版本并一键安装/更新：
-
-1. iPhone 打开 **AltStore** → **Sources** → 点 **+**
-2. 输入源地址：`https://rayliu445.github.io/tinydo/altstore/source.json`
-3. 添加后，**Browse** 中出现 **TinyDo**（橙色图标）
-4. 点进去安装即可（安装同样需要 AltServer 用 Apple ID 签名）
-
-> ⚠️ AltStore 的安装依赖 **AltServer** 用 Apple ID 签名。若您的 Apple ID 是
-> **手机号注册** 或开启 **双重认证**，AltServer 的老认证接口可能登录失败。
-> 遇到这种情况请改用 **方式一（Sideloadly）**。
-
-### 方式三：AltStore 手动安装（可选）
-
-1. 电脑端安装 [AltServer](https://altstore.io)，用数据线连接 iPhone，安装 AltStore 到 iPhone
-2. 将 `.ipa` 通过 AirDrop 传到 iPhone，在 AltStore → My Apps → **+** 选择安装
-3. 每 7 天需连接电脑自动续签
-
-### 方式四：SideStore（AltStore 替代品）
+### 方式二：SideStore 安装（可选）
 
 1. 访问 [sidestore.io](https://sidestore.io) 安装 SideStore
 2. 在 SideStore 中导入 `.ipa` 文件
@@ -171,7 +152,7 @@ Sideloadly 使用现代 Apple 认证，对 **手机号 Apple ID + 双重认证**
 
 ### 检查更新（iOS 版专属）
 
-设置 → 关于 → **软件更新**：自动对比 GitHub 最新版本，有新版本时提供 `.ipa` 下载链接，下载后用 Sideloadly / AltStore 覆盖安装即可（数据保留）。
+设置 → 关于 → **软件更新**：自动对比 GitHub 最新版本，有新版本时提供 `.ipa` 下载链接，下载后用 Sideloadly 覆盖安装即可（数据保留）。
 
 ### iOS 常见问题
 

@@ -264,7 +264,7 @@
                 :style="{ backgroundColor: 'var(--color-accent-light)', color: 'var(--text-primary)' }"
               >下载新版本 ipa</a>
               <div class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
-                下载后用 Sideloadly 或 AltStore 签名安装（覆盖更新，数据保留）。
+                下载后用 Sideloadly 签名安装（覆盖更新，数据保留）。
               </div>
             </div>
             <div v-else-if="iosUpdateState === 'error'" class="space-y-2">
