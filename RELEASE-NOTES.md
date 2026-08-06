@@ -1,20 +1,30 @@
 # TinyDo - 发布说明
 
-## v0.1.11（2026-08-06）
+## v0.1.12（2026-08-06）—— ★ iOS 同步问题的真正根因修复
 
-### 修复：设置页同步状态"假正常"（最终根因）
+### 修复：iOS 上本地数据库从未初始化成功（Database not initialized）
 
-- **根因**：`settings` store 里 `syncState` 用 `computed(() => syncEngine.getState())`，
-  但同步引擎的内部状态不是 Vue 响应式对象——computed 只计算一次就缓存初始快照，
-  导致设置页**永远显示"同步正常"、永远看不到错误/诊断**，无论真实同步成功失败。
-- **修复**：改为订阅 `syncEngine.onStateChange` 推送 + 响应式 `ref`，
-  设置页现在实时反映真实同步状态（同步中/出错/离线）、具体错误、以及**同步诊断**面板
-  （云端文件大小、云端任务数、本地任务数、合并后任务数、失败阶段）。
-- 装上本版本后，设置 → 同步 会显示同步的真实结果，不再有"假正常"。
+- **根因（终于找到）**：iOS（Capacitor）的本地服务器对 `.wasm` 文件返回的
+  `Content-Type` 不是 `application/wasm`，导致 `WebAssembly.instantiateStreaming`
+  失败 → sql.js（SQLite WASM）初始化失败 → 本地数据库永远是 null →
+  **所有数据操作抛 "Database not initialized"**。
+- **连锁后果**：云端数据即使下载成功（1204 个任务）也**写不进本地数据库**，
+  所以任务永远显示不出来——这就是"同步正常却拉不到数据"的真正原因。
+- **修复**：`sqlite-db.ts` 改为手动 `fetch` WASM 为 `ArrayBuffer`，通过
+  `wasmBinary` 选项传给 `initSqlJs`（走 `WebAssembly.instantiate(ArrayBuffer)`，
+  **不校验 MIME**），跨平台可靠；fetch 失败自动回退原方式。
+- **验证**：Node 中 `wasmBinary` 方式建表/插入/查询全部成功；浏览器中通过
+  Vite 加载真实 `sqlite-db.ts`，`initialize()` 成功（ready=true）。
+- 附带：上一版（v0.1.11）的设置页同步状态响应式修复 + 同步诊断面板。
 
 ---
 
 ## 历史版本
+
+### v0.1.11（2026-08-06）
+
+- 修复设置页同步状态"假正常"：syncState 改为响应式订阅，设置页实时显示真实状态
+- 新增「同步诊断」面板（云端文件大小、云端/本地任务数、失败阶段与错误）
 
 ### v0.1.10（2026-08-06）
 

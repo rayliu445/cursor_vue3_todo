@@ -108,9 +108,29 @@ export class TodoDatabase {
       const baseDir = distIdx >= 0 ? url.substring(0, distIdx) : asarRoot
       return baseDir + '/node_modules/sql.js/dist/' + file
     }
-    const SQL = await initSqlJs({
-      locateFile,
-    })
+
+    // 【关键修复】iOS/Android (Capacitor) 下，本地服务器对 .wasm 返回的
+    // Content-Type 不是 application/wasm，WebAssembly.instantiateStreaming 会因
+    // MIME 不符直接失败，导致 sql.js 初始化失败（本地数据库不可用 →
+    // 所有数据操作抛 "Database not initialized" → 同步数据写不进去）。
+    // 修复：手动 fetch WASM 为 ArrayBuffer，通过 wasmBinary 传入 initSqlJs，
+    // 走 WebAssembly.instantiate(ArrayBuffer) 路径，不校验 MIME，跨平台可靠。
+    // fetch 失败时回退到原 locateFile 方式（streaming）。
+    let sqlConfig: Record<string, unknown> = { locateFile }
+    try {
+      const wasmUrl = locateFile('sql-wasm.wasm')
+      const wasmRes = await fetch(wasmUrl)
+      if (wasmRes.ok) {
+        const wasmBinary = await wasmRes.arrayBuffer()
+        sqlConfig = { wasmBinary }
+        console.log('[Sqlite] WASM 加载成功（fetch ArrayBuffer）:', wasmBinary.byteLength, 'bytes')
+      } else {
+        console.warn('[Sqlite] WASM fetch 失败 (HTTP', wasmRes.status, ')，回退 locateFile')
+      }
+    } catch (err) {
+      console.warn('[Sqlite] WASM fetch 异常，回退 locateFile:', err)
+    }
+    const SQL = await initSqlJs(sqlConfig as any)
 
     if (existingData && existingData.length > 0) {
       this.db = new SQL.Database(existingData)
